@@ -1,0 +1,29 @@
+name: llm_goals
+dependencies:
+  - pip
+  - pytorch
+  - python
+  - ipykernel
+  - pandas
+  - matplotlib
+  - pandas
+  - scikit-learn
+  - seaborn
+  - nltk
+  - transformers
+  - spacy
+  - spacy-model-en_core_web_sm
+  - scipy
+  - pytest
+  - pip:
+    - huggingface
+    - openai
+    - requests
+    - langchain
+    - langchain_community
+    - langchain_openai
+    - langchain-google-genai
+    - langchain-anthropic
+    - vllm
+    - jupyterlab
+    - python-dotenv
