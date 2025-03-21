@@ -1,9 +1,9 @@
-import langchain_agent
+from agents import langchain_agent
 
-from information_gathering import InformationGatheringTask, MeasuringCapability
-from cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
-from full_task import FullTask, PlanAndExecuteTask, ExecuteTask
-from falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
+from tasks.information_gathering import InformationGatheringTask, MeasuringCapability
+from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
+from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
+from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
 from arrange_letters import ArrangeLettersTask, ConstructWordCapability
 from anagram import AnagramTask, GeneratePermutationsCapability, CheckIfWordCapability
 

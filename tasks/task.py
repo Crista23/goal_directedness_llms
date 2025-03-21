@@ -1,4 +1,4 @@
-from blocksworld_environment import BlocksWorld
+from blocksworld_environment.blocksworld_environment import BlocksWorld
 import datetime
 import subprocess
 import traceback

@@ -1,7 +1,7 @@
-from blocksworld_environment import BlocksWorld, Action, Done, Help, list_to_natural_language
-from task import Task
-from full_task import FullTask, all_configurations, score
-from information_gathering import MeasuringCapability
+from blocksworld_environment.blocksworld_environment import BlocksWorld, Action, Done, Help, list_to_natural_language
+from tasks.task import Task
+from tasks.full_task import FullTask, all_configurations, score
+from tasks.information_gathering import MeasuringCapability
 
 import itertools
 import math

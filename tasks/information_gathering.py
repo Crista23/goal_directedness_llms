@@ -1,6 +1,6 @@
-from blocksworld_environment import BlocksWorld, Action, PickUp, PutDown, Stack, Unstack, Measure, Help, list_to_natural_language
-from task import Task
-import langchain_agent
+from blocksworld_environment.blocksworld_environment import BlocksWorld, Action, PickUp, PutDown, Stack, Unstack, Measure, Help, list_to_natural_language
+from tasks.task import Task
+from agents import langchain_agent
 
 import math
 import time

@@ -1,5 +1,5 @@
-from blocksworld_environment import BlocksWorld, PickUp, PutDown, Stack, Unstack, Done, Help, list_to_natural_language
-from task import Task
+from blocksworld_environment.blocksworld_environment import BlocksWorld, PickUp, PutDown, Stack, Unstack, Done, Help, list_to_natural_language
+from tasks.task import Task
 
 import textwrap
 

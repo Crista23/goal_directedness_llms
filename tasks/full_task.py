@@ -1,5 +1,5 @@
-from blocksworld_environment import BlocksWorld, Action, PickUp, PutDown, Stack, Unstack, Measure, Help, Done
-from task import Task
+from blocksworld_environment.blocksworld_environment import BlocksWorld, Action, PickUp, PutDown, Stack, Unstack, Measure, Help, Done
+from tasks.task import Task
 
 import itertools
 import math
