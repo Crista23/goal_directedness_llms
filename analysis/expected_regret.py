@@ -8,13 +8,12 @@ from scipy import stats
 
 
 TASKS = ['FULL', 'COGNITIVE_EFFORT', 'PLAN_AND_EXECUTE', 'INFO_GATHERING']
+#TASKS = ['INFO_GATHERING']
 
 seed_range = (10, 29)
 
 folders = [
-    'drive_results/claude-2025-03-06/',
-    'drive_results/new-prompt-2025-03-10/',
-    'drive_results/more-exp-2025-03-13/',
+  '../results/'
 ]
 
 models = {
@@ -68,8 +67,6 @@ def expand_dictionary(df, column):
 # Datasets used for all tasks
 measuring_df = load_dataframe(folders, 'measuring.csv')
 measuring_df['questions_per_block'] = measuring_df['questions_asked']
-measuring_df = expand_dictionary(measuring_df, 'block_heights')
-measuring_df = expand_dictionary(measuring_df, 'question_blocks')
 
 generate_configurations_df = load_dataframe(folders, 'generate_configurations.csv')
 evaluate_configuration_df = load_dataframe(folders, 'evaluate_configuration.csv')
@@ -81,8 +78,6 @@ full_task_df['questions_per_block'] = full_task_df['questions_asked'] / full_tas
 cognitive_effort_df = load_dataframe(folders, 'cognitive_effort.csv')
 plan_and_execute_df = load_dataframe(folders, 'plan_and_execute.csv')
 info_gather_df = load_dataframe(folders, 'information_gathering.csv')
-info_gather_df = expand_dictionary(info_gather_df, 'question_blocks')
-info_gather_df = expand_dictionary(info_gather_df, 'block_heights')
 info_gather_df['questions_per_block'] = info_gather_df['questions_asked'] / info_gather_df['number_of_blocks']
 
 DATA_OBSERVED_RETURNS_DICT = {
@@ -162,6 +157,7 @@ def partition_distance(partition1, partition2):
 
     return min(distance1, distance2)
 
+
 class EstimatedHeight():
 
   def __init__(self, df, distance=2):
@@ -231,15 +227,24 @@ class PickConfiguration():
 # Actual expected regret
 ############################################
 
-def monte_carlo(models, num_blocks, height_estimate, generate_configurations,
+def monte_carlo(actual_run, height_estimate, generate_configurations,
                 evaluate_configurations, pick_configuration, execute_plan, task,
                 num_iterations=1000):
   regret_samples = []
-  for model in models:
-    for num_block in num_blocks:
+  for model in actual_run.model.unique():
+    for num_block in actual_run.number_of_blocks.unique():
       for _ in range(num_iterations):
+        #df = actual_run[(actual_run['model']==model) & (actual_run['number_of_blocks'] == num_block)]
+        # print(len(df))
+        # print(df)
+        #breakpoint()
+        actual_row = actual_run[(actual_run['model']==model) & (actual_run['number_of_blocks'] == num_block)].sample().iloc[0]
+
+        #breakpoint()
+
         # 1. Sample actual block heights
-        block_heights = {block: round(5 + 5 * np.random.random(), 2) for block in generate_block_names(num_block)}
+        block_heights = ast.literal_eval(actual_row['block_heights'])
+        #block_heights = {block: round(5 + 5 * np.random.random(), 2) for block in generate_block_names(num_block)}
 
         # 2. Sample the agent’s estimated height ^H_b for each block b.
         if task == 'FULL' or 'INFO_GATHERING':
@@ -256,12 +261,12 @@ def monte_carlo(models, num_blocks, height_estimate, generate_configurations,
           e1, e2 = sorted(estimated_heights, key=estimated_heights.get)[:2]   # worst estimated blocks
 
           # Record heights
-          actual_height = block_heights[a1] + block_heights[a2]
+          actual_height = actual_row['actual_height']
+          opt_given_cap = block_heights[a1] + block_heights[a2]
           optimal_height = block_heights[b1] + block_heights[b2]
           random_height = block_heights[c1] + block_heights[c2]
           min_height = block_heights[d1] + block_heights[d2]
           min_given_cap = block_heights[e1] + block_heights[e2]
-
 
         else:
           # 3. Generate configurations
@@ -279,7 +284,6 @@ def monte_carlo(models, num_blocks, height_estimate, generate_configurations,
           picked_max_configuration = pick_configuration(model, num_block, picked_max_configuration, block_heights)
           picked_min_configuration = pick_configuration(model, num_block, picked_min_configuration, block_heights)
 
-
           # 6. The agent might execute one they didn't plan
           if task != 'COGNITIVE_EFFORT':
             picked_max_configuration = execute_plan(model, num_block, picked_max_configuration, block_heights)
@@ -288,15 +292,17 @@ def monte_carlo(models, num_blocks, height_estimate, generate_configurations,
           # 7. Record performance
           optimal_height = optimal_score(block_heights)
           min_height = min_score(block_heights)
-          actual_height = score(block_heights, picked_max_configuration)
+          actual_height = actual_row['score']
+          opt_given_cap = score(block_heights, picked_max_configuration)
           random_height = score(block_heights, random.choice(all_configurations(num_block)))
           min_given_cap = score(block_heights, picked_min_configuration)
 
         regret_samples.append({
           'model': model,
           'number_of_blocks': num_block,
-          'maximum_return_given_capabilities': actual_height,
+          'maximum_return_given_capabilities': opt_given_cap,
           'minimum_return_given_capabilities': min_given_cap,
+          'actual_return': actual_height,
           'baseline_return': random_height,
           'optimal_return': optimal_height,
           'min_return': min_height,
@@ -311,8 +317,7 @@ expected_regret_dfs = {}
 for TASK in TASKS:
   print(f"Computing expected regret for {TASK}")
   expected_regret_dfs[TASK] = monte_carlo(
-      DATA_OBSERVED_RETURNS_DICT[TASK].model.unique(),
-      DATA_OBSERVED_RETURNS_DICT[TASK].number_of_blocks.unique(),
+      DATA_OBSERVED_RETURNS_DICT[TASK],
       EstimatedHeight(measuring_df),
       GenerateConfigurations(generate_configurations_df),
       EvaluateConfigurations(evaluate_configuration_df),
