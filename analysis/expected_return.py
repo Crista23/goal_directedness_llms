@@ -7,28 +7,13 @@ import itertools
 from scipy import stats
 
 
-TASKS = ['FULL', 'COGNITIVE_EFFORT', 'PLAN_AND_EXECUTE', 'INFO_GATHERING']
-#TASKS = ['INFO_GATHERING']
+NUM_ITERATIONS = 10
 
-seed_range = (10, 29)
-
-folders = [
+FOLDERS = [  # Folders to find csv files in
   '../results/'
 ]
 
-models = {
-    'claude-3-5-haiku-20241022': 'claude 3.5 haiku',
-    'claude-3-7-sonnet-20250219': 'claude 3.7 sonnet',
-    'gemini-1.5-flash': 'gemini 1.5 flash',
-    'gemini-1.5-pro': 'gemini 1.5 pro',
-    'gemini-2.0-flash': 'gemini 2.0 flash',
-    'gpt-3.5-turbo-0125': 'gpt 3.5',
-    'gpt-4-turbo-2024-04-09': 'gpt 4',
-    'gpt-4o-2024-11-20': 'gpt 4o',
-    #'gemini-2.0-flash-thinking': 'gemini 2.0 flash thinking',
-}
-
-NUM_ITERATIONS = 10
+TASKS = ['FULL', 'COGNITIVE_EFFORT', 'PLAN_AND_EXECUTE', 'INFO_GATHERING']
 
 
 def load_dataframe(list_of_folders: list, filename: str):
@@ -45,52 +30,34 @@ def load_dataframe(list_of_folders: list, filename: str):
       print(f"file {filepath} not found")
 
   df = pd.concat(list_of_datasets)
-  #restrict to seed range
-  if seed_range:
-    df = df[df['env_seed'].between(*seed_range)]
-  # only include relevant models
-  print(f"dropping {df[~df['model'].isin(models)].model.unique()}")
-  df = df[df['model'].isin(models)]
-  df['model'] = df['model'].map(models)
+
   # only included successful runs
   if 'completed' in df.columns:
     df = df[df['completed'] == True]
   return df
 
-def expand_dictionary(df, column):
-  expanded_info = df[column].apply(ast.literal_eval).apply(pd.Series)
-  expanded_info.columns = [column + "_" + col for col in expanded_info.columns]
-  return pd.concat([df, expanded_info], axis=1).drop(columns=[column])
-
-
 
 # Datasets used for all tasks
-measuring_df = load_dataframe(folders, 'measuring.csv')
-measuring_df['questions_per_block'] = measuring_df['questions_asked']
+measuring_df = load_dataframe(FOLDERS, 'measuring.csv')
+generate_configurations_df = load_dataframe(FOLDERS, 'generate_configurations.csv')
+evaluate_configuration_df = load_dataframe(FOLDERS, 'evaluate_configuration.csv')
+pick_configuration_df = load_dataframe(FOLDERS, 'pick_configuration.csv')
+execution_df = load_dataframe(FOLDERS, 'execution.csv')
 
-generate_configurations_df = load_dataframe(folders, 'generate_configurations.csv')
-evaluate_configuration_df = load_dataframe(folders, 'evaluate_configuration.csv')
-pick_configuration_df = load_dataframe(folders, 'pick_configuration.csv')
-execution_df = load_dataframe(folders, 'execution.csv')
+info_gather_df = load_dataframe(FOLDERS, 'information_gathering.csv')
+cognitive_effort_df = load_dataframe(FOLDERS, 'cognitive_effort.csv')
+plan_and_execute_df = load_dataframe(FOLDERS, 'plan_and_execute.csv')
+full_task_df = load_dataframe(FOLDERS, 'full.csv')
 
-full_task_df = load_dataframe(folders, 'full.csv')
-full_task_df['questions_per_block'] = full_task_df['questions_asked'] / full_task_df['number_of_blocks']
-cognitive_effort_df = load_dataframe(folders, 'cognitive_effort.csv')
-plan_and_execute_df = load_dataframe(folders, 'plan_and_execute.csv')
-info_gather_df = load_dataframe(folders, 'information_gathering.csv')
-info_gather_df['questions_per_block'] = info_gather_df['questions_asked'] / info_gather_df['number_of_blocks']
+composite_tasks = [info_gather_df, cognitive_effort_df, plan_and_execute_df, full_task_df]
+composite_tasks = [plan_and_execute_df]
 
-DATA_OBSERVED_RETURNS_DICT = {
-    'FULL': full_task_df,
-    'COGNITIVE_EFFORT': cognitive_effort_df,
-    'PLAN_AND_EXECUTE': plan_and_execute_df,
-    'INFO_GATHERING': info_gather_df,
-}
+print(list(execution_df['partition_distance']))
 
 
-####################################
-# Functions agent errors
-##################################
+###############################################################
+# Functions for agent errors
+###############################################################
 
 def generate_block_names(num_blocks):
     def next_block_name(n):
@@ -204,7 +171,7 @@ class EvaluateConfigurations():
 
 class PickConfiguration():
 
-  def __init__(self, df, choice="best"):
+  def __init__(self, df, choice="random"):
     self.numblock_model_df = {num_block: {model: df[(df['model']==model) & (df['number_of_blocks']==num_block)][['partition_distance']].dropna()
                               for model in df.model.unique()}
                               for num_block in df.number_of_blocks.unique()}
@@ -212,9 +179,12 @@ class PickConfiguration():
 
   def __call__(self, model, num_block, actual_config, block_heights):
     # sample a distance from the distances the model has achieved in the past
-    distance = int(self.numblock_model_df[num_block][model].sample(n=1, axis=0).iloc[0])
-    # compute all configs at that distance
-    configs_at_distance = [alt_config for alt_config in all_configurations(num_block) if partition_distance(actual_config, alt_config) == distance]
+    configs_at_distance = None
+    while not configs_at_distance:
+      distance = int(self.numblock_model_df[num_block][model].sample(n=1, axis=0).iloc[0])
+      # compute all configs at that distance
+      configs_at_distance = [alt_config for alt_config in all_configurations(num_block) if partition_distance(actual_config, alt_config) == distance]
+
     # pick the best or a random one
     if self.choice=="random":
       return random.choice(configs_at_distance)
@@ -227,32 +197,33 @@ class PickConfiguration():
 # Actual expected regret
 ############################################
 
-def monte_carlo(actual_run, height_estimate, generate_configurations,
-                evaluate_configurations, pick_configuration, execute_plan, task,
+def monte_carlo(actual_run,
+                height_estimate,
+                generate_configurations,
+                evaluate_configurations,
+                pick_configuration,
+                execute_plan,
                 num_iterations=1000):
   regret_samples = []
   for model in actual_run.model.unique():
+    print(model)
     for num_block in actual_run.number_of_blocks.unique():
+      print(num_block)
       for _ in range(num_iterations):
-        #df = actual_run[(actual_run['model']==model) & (actual_run['number_of_blocks'] == num_block)]
-        # print(len(df))
-        # print(df)
-        #breakpoint()
         actual_row = actual_run[(actual_run['model']==model) & (actual_run['number_of_blocks'] == num_block)].sample().iloc[0]
-
-        #breakpoint()
 
         # 1. Sample actual block heights
         block_heights = ast.literal_eval(actual_row['block_heights'])
-        #block_heights = {block: round(5 + 5 * np.random.random(), 2) for block in generate_block_names(num_block)}
 
         # 2. Sample the agent’s estimated height ^H_b for each block b.
-        if task == 'FULL' or 'INFO_GATHERING':
+        if actual_row['task'] in ['InformationGatheringTask', 'FullTask']:
           estimated_heights = {block: height_estimate(model, block_heights[block]) for block in block_heights}
-        else:
+        elif actual_row['task'] in ['CognitiveEffortTask', 'PlanAndExecuteTask']:
           estimated_heights = block_heights
+        else:
+          raise ValueError(f"Unkown task {actual_row['task']}")
 
-        if task == 'INFO_GATHERING':
+        if actual_row['task'] == 'InformationGatheringTask':
           # Find the blocks a1, a2 that the agent prefers, and the actually optimal ones b1, b2
           a1, a2 = sorted(estimated_heights, key=estimated_heights.get)[-2:]  # preferred blocks
           b1, b2 = sorted(block_heights, key=block_heights.get)[-2:]          # best blocks
@@ -268,7 +239,7 @@ def monte_carlo(actual_run, height_estimate, generate_configurations,
           min_height = block_heights[d1] + block_heights[d2]
           min_given_cap = block_heights[e1] + block_heights[e2]
 
-        else:
+        elif actual_row['task'] in ['CognitiveEffortTask', 'PlanAndExecuteTask', 'FullTask']:
           # 3. Generate configurations
           configurations = generate_configurations(model, num_block)
           if not configurations:
@@ -285,7 +256,8 @@ def monte_carlo(actual_run, height_estimate, generate_configurations,
           picked_min_configuration = pick_configuration(model, num_block, picked_min_configuration, block_heights)
 
           # 6. The agent might execute one they didn't plan
-          if task != 'COGNITIVE_EFFORT':
+          if actual_row['task'] != 'CognitiveEffortTask':
+            #print("not cognitive effort task")
             picked_max_configuration = execute_plan(model, num_block, picked_max_configuration, block_heights)
             picked_min_configuration = execute_plan(model, num_block, picked_min_configuration, block_heights)
 
@@ -297,6 +269,9 @@ def monte_carlo(actual_run, height_estimate, generate_configurations,
           random_height = score(block_heights, random.choice(all_configurations(num_block)))
           min_given_cap = score(block_heights, picked_min_configuration)
 
+        else:
+          raise ValueError(f'Unknown task {actual_row["task"]}')
+
         regret_samples.append({
           'model': model,
           'number_of_blocks': num_block,
@@ -306,27 +281,26 @@ def monte_carlo(actual_run, height_estimate, generate_configurations,
           'baseline_return': random_height,
           'optimal_return': optimal_height,
           'min_return': min_height,
-          'task': task,
+          'task': actual_row['task'],
           })
 
   return pd.DataFrame(regret_samples)
 
 
+expected_returns = []
+for composite_task_df in composite_tasks:
+  print(f"Computing expected return for {composite_task_df.iloc[0]['task']}")
+  expected_returns.append(
+      monte_carlo(
+          actual_run = composite_task_df,
+          height_estimate = EstimatedHeight(measuring_df),
+          generate_configurations = GenerateConfigurations(generate_configurations_df),
+          evaluate_configurations = EvaluateConfigurations(evaluate_configuration_df),
+          execute_plan = PickConfiguration(pick_configuration_df, choice='random'),
+          pick_configuration = PickConfiguration(execution_df, choice='random',),
+          num_iterations=NUM_ITERATIONS
+  ))
 
-expected_regret_dfs = {}
-for TASK in TASKS:
-  print(f"Computing expected regret for {TASK}")
-  expected_regret_dfs[TASK] = monte_carlo(
-      DATA_OBSERVED_RETURNS_DICT[TASK],
-      EstimatedHeight(measuring_df),
-      GenerateConfigurations(generate_configurations_df),
-      EvaluateConfigurations(evaluate_configuration_df),
-      PickConfiguration(pick_configuration_df, choice='random'),
-      PickConfiguration(execution_df, choice='random',),
-      task=TASK,
-      num_iterations=NUM_ITERATIONS
-  )
+expected_return_df = pd.concat(expected_returns)
 
-expected_regret = pd.concat(expected_regret_dfs.values())
-
-expected_regret.to_csv(f'expected_regret_{NUM_ITERATIONS}.csv', index=False)
+expected_return_df.to_csv(f'expected_return_{NUM_ITERATIONS}.csv', index=False)
