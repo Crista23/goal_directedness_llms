@@ -1,5 +1,8 @@
-from langchain_agent import LangchainAgent
-import agency_evals
+import sys
+sys.path.insert(0, '../')
+
+from agents.langchain_agent import LangchainAgent
+import main
 import pytest
 import itertools
 import os

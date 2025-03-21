@@ -1,15 +1,18 @@
-from mock_agent import MockLLM
-import agency_evals
+import sys
+sys.path.insert(0, '../')
+
+from agents.mock_agent import MockLLM
+#import main
 import pytest
 import os
 if not os.path.exists("test_logs"):
     os.makedirs("test_logs")
 
-from information_gathering import InformationGatheringTask, MeasuringCapability
-from cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
-from full_task import FullTask, PlanAndExecuteTask, ExecuteTask
-from falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
-from arrange_letters import ArrangeLettersTask, ConstructWordCapability
+from tasks.information_gathering import InformationGatheringTask, MeasuringCapability
+from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
+from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
+from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
+from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
 
 # 'information_gathering':   InformationGatheringTask,
 # 'measuring':               MeasuringCapability,

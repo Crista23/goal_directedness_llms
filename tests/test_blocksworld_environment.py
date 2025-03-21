@@ -1,4 +1,7 @@
-from blocksworld_environment import BlocksWorld
+import sys
+sys.path.insert(0, '../')
+
+from blocksworld_environment.blocksworld_environment import BlocksWorld
 
 import os
 if not os.path.exists("test_logs"):
