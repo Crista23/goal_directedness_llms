@@ -84,7 +84,7 @@ class FullTask(Task):
         self.distraction_prob = distraction_prob
         self.times_perturbed = 0
         self.times_distracted = 0
-        self.wikipedia_llm = open('wikipedia_llm.txt', 'r')  # for distractions
+        self.wikipedia_llm = open('../utils/wikipedia_llm.txt', 'r')  # for distractions
 
         ## set the random seed ##
         if kwargs.get('seed', None):
