@@ -14,7 +14,7 @@ SEED=10
 # Loop through variations and execute the command
 for TASK in "${TASKS[@]}"; do
   # Construct the full command with current arguments
-  full_command="python3 agency_evals.py --models gemini-2.0-flash gemini-1.5-pro gemini-1.5-flash --task ${TASK} --num_blocks 3 4 5 --file_name ${TASK} --num_runs ${NUM_RUNS} --starting_seed ${SEED} --noise 0.1 --perturb_prob 0.2 --distraction_prob 0.2" 
+  full_command="python3 main.py --models gemini-2.0-flash gemini-1.5-pro gemini-1.5-flash --task ${TASK} --num_blocks 3 4 5 --file_name ${TASK} --num_runs ${NUM_RUNS} --starting_seed ${SEED} --noise 0.1 --perturb_prob 0.2 --distraction_prob 0.2" 
 
   # Execute the command
   echo "Running: ${full_command}"
