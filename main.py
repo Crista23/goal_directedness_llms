@@ -4,8 +4,8 @@ from tasks.information_gathering import InformationGatheringTask, MeasuringCapab
 from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
 from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
-from arrange_letters import ArrangeLettersTask, ConstructWordCapability
-from anagram import AnagramTask, GeneratePermutationsCapability, CheckIfWordCapability
+from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
+from anagram_environment.anagram import AnagramTask, GeneratePermutationsCapability, CheckIfWordCapability
 
 import argparse
 import csv
