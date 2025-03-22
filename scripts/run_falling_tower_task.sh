@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Activate Conda environment
-#source ~/anaconda3/etc/profile.d/conda.sh
-#conda activate llm_goals
-
-#eval "$(conda shell.bash hook)"
-#conda activate  C:\\Users\\papad\\AppData\\Local\\conda\\conda\\envs\\llm_goals # change to own environment
-
 # Array of LLM models to evaluate
 #"gemini-1.5-flash" "gemini-2.0-flash" "gemini-1.5-pro" "gpt-3.5-turbo-0125" "gpt-4-turbo-2024-04-09" "gpt-4o-2024-11-20" "claude-3-7-sonnet-20250219" "claude-3-5-haiku-20241022"
 MODELS=(
