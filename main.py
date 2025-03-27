@@ -1,5 +1,6 @@
 from agents import langchain_agent
 
+from blocksworld_environment.blocksworld_environment import BlocksWorld
 from tasks.information_gathering import InformationGatheringTask, MeasuringCapability
 from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
 from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
@@ -82,10 +83,20 @@ def output_csv(result_queue, filename):
     csv_file.close()
 
 
+def run_task_sequence(task_sequence, env, llm, result_queues):
+    """Executes a sequence of tasks within a thread."""
+            #output_files = []
+    for i, task in enumerate(task_sequence):
+        print(f"Run {i} for model {model} on {task} with {env.number_of_blocks} blocks and seed {env.seed}")
+        task_instance = tasks[task](seed=seed, output_file=output_file, number_of_blocks=number_of_blocks, **vars(args))
+        result = task_instance.run(llm)
+        result_queues[task].put(result) # put the result into the queue
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--models", nargs='+', type=str, default=["gemini-1.5-flash"], help=", ".join(models))
-    parser.add_argument("--task", type=str, default="information_gathering", help=", ".join(list(tasks.keys())))
+    parser.add_argument("--models", nargs='+', type=str, default=["gemini-2.0-flash"], help=", ".join(models))
+    parser.add_argument("--tasks", nargs='+', type=str, default=["information_gathering"], help=", ".join(list(tasks.keys())))
     parser.add_argument("--num_blocks", nargs='+', type=int, default=[3])
     parser.add_argument("--num_runs", type=int, default=1)
     parser.add_argument("--max_steps_per_run", type=int, default=None)
@@ -100,10 +111,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Task
-    if args.task in tasks:
-        task = tasks[args.task]
-    else:
-        raise ValueError(f"No such task: {args.task}, choose one of {list(tasks.keys())}.")
+    for task in args.tasks:
+        if task not in tasks:
+            raise ValueError(f"No such task: {args.tasks}, choose one of {list(tasks.keys())}.")
 
     # Create results dir
     if args.file_name:
@@ -111,8 +121,7 @@ if __name__ == "__main__":
 
     ## Actual run ##
     threads = []
-    result_queue = queue.Queue()
-    output_files = []
+    result_queues = {task: queue.Queue() for task in args.tasks}
     if args.models != ["all"]:
         print(args.models, "not equal to all")
         models = args.models
@@ -120,34 +129,29 @@ if __name__ == "__main__":
         for number_of_blocks in args.num_blocks:
             for i in range(args.num_runs):
                 seed = args.starting_seed + i if args.starting_seed is not None else None
-                print(f"Run {i} for model {model} on {args.task} with {number_of_blocks} blocks and seed {seed}")
                 if args.file_name:
-                    output_file = open(os.path.join('results', f"{args.file_name}_{model}_{number_of_blocks}_{i}_{seed}.txt"), "w")
-                    output_files.append(output_file)
-                    print(f"Run {i} for model {model} on {args.task} with {number_of_blocks} blocks and seed {seed}", file=output_file)
+                    output_file = open(os.path.join('results', f"{model}_{number_of_blocks}_{i}.txt"), "w")
+                    print(f"Run {i} for model {model} on {args.tasks} with {number_of_blocks} blocks and seed {seed}", file=output_file)
                 else:
                     output_file = None
-                extra_prompt = args.extra_prompt
-                llm = langchain_agent.LangchainAgent(model, extra_prompt=extra_prompt, output_file=output_file)
-                task_instance = task(seed=seed, output_file=output_file, number_of_blocks=number_of_blocks, **vars(args))
-                thread = threading.Thread(target=task_instance.run, args=(llm,), kwargs={'result_queue': result_queue})
+
+                env = BlocksWorld(**vars(args))
+                llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
+                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues))
                 threads.append(thread)
                 thread.start()
 
     if args.file_name:
-        writer_thread = threading.Thread(target=output_csv, args=(result_queue, args.file_name))
-        writer_thread.start()
+        writer_threads = {}
+        for task in args.tasks:
+            writer_threads[task] = threading.Thread(target=output_csv, args=(result_queues[task], task))
+            writer_threads[task].start()
 
     # Wait for all threads to complete
     for thread in threads:
         thread.join()
 
     if args.file_name:
-        result_queue.put(None)  # Signal to writer thread to halt
-        writer_thread.join()
-        # Concatenate text logs into one file
-        main_output_file = open(os.path.join('results', args.file_name + ".txt"), "a")
-        for output_file in output_files:
-            output_file.close()
-            main_output_file.write(open(output_file.name, 'r').read())
-        main_output_file.close()
+        for task in args.tasks:
+            result_queues[task].put(None)
+            writer_threads[task].join()
