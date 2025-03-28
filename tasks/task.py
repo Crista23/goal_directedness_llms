@@ -43,6 +43,7 @@ class Task():
         self.environment_error = False
         self.preceding_tasks = kwargs.get('preceding_tasks', [])
         self.task = kwargs.get('task', None)
+        self.preceding_results = kwargs.get('preceding_results', {})
         self.set_up(**kwargs)
 
     def set_up(self, **kwargs):

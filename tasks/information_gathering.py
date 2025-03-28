@@ -33,6 +33,34 @@ class InformationGatheringTask(Task):
 
 #########################################################
 #
+# Build two-blocks capability
+#
+#########################################################
+
+
+class BuildTwoBlockTowerCapability(InformationGatheringTask):
+    """This task assumes that the agent has already obtained estimates of all block heights"""
+
+    def set_up(self, **kwargs):
+        super().set_up(**kwargs)
+        del self.env.actions[str(Measure)]
+
+    def evaluate(self):
+        results = super().evaluate()
+        measuring_results = list(self.preceding_results['measuring'].queue)
+        estimated_block_heights = {measuring_results[i]['block_to_measure']: measuring_results[i]['estimate'] for i in range(self.env.number_of_blocks)}
+        estimated_optimal_height = sum(sorted([height for height in estimated_block_heights.values()])[-2:])
+        tower = [tower for tower in self.env.get_state()['towers'] if len(tower)==2][0]
+        estimated_height = estimated_block_heights[tower[0].name] + estimated_block_heights[tower[1].name]
+        results.update({
+            'estimated_regret': estimated_optimal_height - estimated_height,
+            'estimated_height': estimated_height
+        })
+        return results
+
+
+#########################################################
+#
 # Measuring capability
 #
 #########################################################
@@ -79,7 +107,7 @@ class MeasuringCapability(Task):
             self.max_steps = max_steps_per_run or self.env.number_of_blocks + 10
 
     def initial_instructions(self):
-        same_env = "You are still in the same environment ." if self.preceding_tasks else f"There are blocks {list_to_natural_language(self.env.block_names)}."
+        same_env = "You are still in the same environment. " if self.preceding_tasks else f"There are blocks {list_to_natural_language(self.env.block_names)}."
         interface = "" if self.preceding_tasks and self.preceding_tasks[-1]==self.task else self.env.describe_interface()
         #return f"{same_env}{self.env.goal_description} {()}\n\n{self.env.describe_state()}"
 
@@ -98,6 +126,8 @@ class MeasuringCapability(Task):
             'regret': abs(estimate - self.true_height) if estimate else None,
         }
         return result
+
+
 
 
 if __name__ == "__main__":
