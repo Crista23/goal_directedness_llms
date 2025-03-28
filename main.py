@@ -1,7 +1,7 @@
 from agents import langchain_agent
 
 from blocksworld_environment.blocksworld_environment import BlocksWorld
-from tasks.information_gathering import InformationGatheringTask, MeasuringCapability
+from tasks.information_gathering import InformationGatheringTask, MeasuringCapability, BuildTwoBlockTowerCapability
 from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
 from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
@@ -21,6 +21,7 @@ import queue
 tasks = {
     'information_gathering':   InformationGatheringTask,
     'measuring':               MeasuringCapability,
+    'two_block_tower':         BuildTwoBlockTowerCapability,
     "cognitive_effort":        CognitiveEffortTask,
     "generate_configurations": GenerateConfigurationsCapability,
     "evaluate_configuration":  EvaluateConfigurationCapability,
@@ -46,12 +47,12 @@ models = [
 ]
 
 
-def output_csv(result_queue, filename):
+def output_csv(result_queue, filename, folder):
     # First result we pop separately, to initialise the csv writer
     result = result_queue.get()
 
     # Try to open the file in read mode to check existing columns
-    full_path = os.path.join('results', filename + ".csv")
+    full_path = os.path.join(folder, filename + ".csv")
     if os.path.exists(full_path):
         with open(full_path, 'r', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -64,7 +65,7 @@ def output_csv(result_queue, filename):
                 filename += now
 
     # Now we're ready to open the writer
-    csv_file = open(os.path.join('results', filename + ".csv"), 'a', newline = "")
+    csv_file = open(os.path.join(folder, filename + ".csv"), 'a', newline = "")
     csv_writer = csv.DictWriter(csv_file, result.keys())
     if csv_file.tell() == 0:
         csv_writer.writeheader()
@@ -85,13 +86,13 @@ def output_csv(result_queue, filename):
 
 def run_task_sequence(task_sequence, env, llm, result_queues):
     """Executes a sequence of tasks within a thread."""
-            #output_files = []
     for i, task in enumerate(task_sequence):
         print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
         task_instance = tasks[task](env, seed=seed, output_file=output_file,
                                     number_of_blocks=number_of_blocks,
                                     preceding_tasks = task_sequence[:i],
                                     task = task,
+                                    preceding_results = result_queues,
                                     **vars(args))
         result = task_instance.run(llm)
         result_queues[task].put(result) # put the result into the queue
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_steps_per_run", type=int, default=None)
     parser.add_argument("--distraction_prob", type=float, default=0.2)
     parser.add_argument("--perturb_prob", type=float, default=0.2)
-    parser.add_argument("--file_name", type=str, default=None)
+    parser.add_argument("--result_folder", type=str, default=None)
     parser.add_argument("--noise", type=float, default=0.3)
     parser.add_argument("--starting_seed", type=int, default=None)
     parser.add_argument("--falling_height", type=int, default=None)
@@ -120,8 +121,8 @@ if __name__ == "__main__":
             raise ValueError(f"No such task: {args.tasks}, choose one of {list(tasks.keys())}.")
 
     # Create results dir
-    if args.file_name:
-        os.makedirs("results", exist_ok=True)
+    if args.result_folder:
+        os.makedirs(args.result_folder, exist_ok=True)
 
     ## Actual run ##
     threads = []
@@ -133,29 +134,29 @@ if __name__ == "__main__":
         for number_of_blocks in args.num_blocks:
             for i in range(args.num_runs):
                 seed = args.starting_seed + i if args.starting_seed is not None else None
-                if args.file_name:
+                if args.result_folder:
                     output_file = open(os.path.join('results', f"{model}_{number_of_blocks}_{i}.txt"), "w")
                     print(f"Run {i} for model {model} on {args.tasks} with {number_of_blocks} blocks and seed {seed}", file=output_file)
                 else:
                     output_file = None
 
-                env = BlocksWorld(**vars(args))
+                env = BlocksWorld(number_of_blocks=number_of_blocks, **vars(args))
                 llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
                 thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues))
                 threads.append(thread)
                 thread.start()
 
-    if args.file_name:
+    if args.result_folder:
         writer_threads = {}
         for task in args.tasks:
-            writer_threads[task] = threading.Thread(target=output_csv, args=(result_queues[task], task))
+            writer_threads[task] = threading.Thread(target=output_csv, args=(result_queues[task], task, args.result_folder))
             writer_threads[task].start()
 
     # Wait for all threads to complete
     for thread in threads:
         thread.join()
 
-    if args.file_name:
+    if args.result_folder:
         for task in args.tasks:
             result_queues[task].put(None)
             writer_threads[task].join()
