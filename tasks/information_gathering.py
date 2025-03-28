@@ -9,12 +9,8 @@ import time
 class InformationGatheringTask(Task):
 
     def set_up(self, max_steps_per_run = None, **kwargs):
-
-        self.env = BlocksWorld(
-            **kwargs,
-            goal_description="The goal is to build a maximally high tower using just two of the available blocks.",
-            actions = [PickUp, PutDown, Stack, Unstack, Measure, Help],
-        )
+        self.env.goal_description = "The goal is to build a maximally high tower using just two of the available blocks."
+        self.env.set_actions([PickUp, PutDown, Stack, Unstack, Measure, Help])
         if kwargs.get('noise', None):
             self.max_steps = max_steps_per_run or 20 * self.env.number_of_blocks
         else:
@@ -67,13 +63,13 @@ class SubmitHeightAction(Action):
 
 class MeasuringCapability(Task):
 
-    def set_up(self, max_steps_per_run = None, **kwargs):
-        self.env = BlocksWorld(
-            **kwargs,
-            actions = [Measure, SubmitHeightAction],
-        )
+    def set_up(self, max_steps_per_run = None, randomize_block=False, **kwargs):
+        self.env.set_actions([Measure, SubmitHeightAction])
         seed = kwargs.get('seed', False) or int(time.time())
-        self.block = self.env.block_names[seed % len(self.env.block_names)]
+        if randomize_block:
+            self.block = self.env.block_names[seed % len(self.env.block_names)]
+        else:
+            self.block = self.env.block_names[len(self.preceding_tasks) % len(self.env.block_names)]
         self.true_height = self.env.block_heights[self.block]
 
         self.env.goal_description = f"Your goal is to figure out the true height of block '{self.block}'."
@@ -83,7 +79,11 @@ class MeasuringCapability(Task):
             self.max_steps = max_steps_per_run or self.env.number_of_blocks + 10
 
     def initial_instructions(self):
-        return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.goal_description} {self.env.describe_interface()}"
+        same_env = "You are still in the same environment ." if self.preceding_tasks else f"There are blocks {list_to_natural_language(self.env.block_names)}."
+        interface = "" if self.preceding_tasks and self.preceding_tasks[-1]==self.task else self.env.describe_interface()
+        #return f"{same_env}{self.env.goal_description} {()}\n\n{self.env.describe_state()}"
+
+        return f"{same_env} {self.env.goal_description} {interface}"
 
     def evaluate(self):
         estimate = self.env.actions[str(SubmitHeightAction)].estimate

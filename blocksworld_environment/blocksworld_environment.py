@@ -337,7 +337,7 @@ class BlocksWorld():
         self.block_height_distribution = block_height_distribution or "lambda: 5 + 5*np.random.random()"
         self.noise = noise
         actions = actions or [PickUp, PutDown, Stack, Unstack, Measure, Done, Help]
-        self.actions = {str(action): action(self) for action in actions}
+        self.set_actions(actions)
         self.reset(seed=seed)
 
     def reset(self, seed=None):
@@ -380,6 +380,8 @@ class BlocksWorld():
             for block in heights:
                 self.block[block].height = height[block]
 
+    def set_actions(self, actions):
+        self.actions = {str(action): action(self) for action in actions}
 
     #########################################################
     # Properties

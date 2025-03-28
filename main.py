@@ -87,8 +87,12 @@ def run_task_sequence(task_sequence, env, llm, result_queues):
     """Executes a sequence of tasks within a thread."""
             #output_files = []
     for i, task in enumerate(task_sequence):
-        print(f"Run {i} for model {model} on {task} with {env.number_of_blocks} blocks and seed {env.seed}")
-        task_instance = tasks[task](seed=seed, output_file=output_file, number_of_blocks=number_of_blocks, **vars(args))
+        print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
+        task_instance = tasks[task](env, seed=seed, output_file=output_file,
+                                    number_of_blocks=number_of_blocks,
+                                    preceding_tasks = task_sequence[:i],
+                                    task = task,
+                                    **vars(args))
         result = task_instance.run(llm)
         result_queues[task].put(result) # put the result into the queue
 

@@ -33,14 +33,17 @@ class Task():
     agent_response_modification() and/or environment_response_modification().
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, env, **kwargs):
         """Initial setup. Usually no need to override."""
+        self.env = env
+        self.env.done = False
         self.max_steps = kwargs.get('max_steps_per_run', 20)  # often overriden by set_up()
         self.output_file = kwargs.get('output_file', None)
         self.agent_error = False
         self.environment_error = False
+        self.preceding_tasks = kwargs.get('preceding_tasks', [])
+        self.task = kwargs.get('task', None)
         self.set_up(**kwargs)
-
 
     def set_up(self, **kwargs):
         """
@@ -52,11 +55,13 @@ class Task():
             random.seed(self.seed)
             np.random.seed(self.seed)
         """
-        self.env = BlocksWorld(**kwargs)
+        pass
 
     def initial_instructions(self):
         """Initial instructions given to the agent. Override if needed."""
-        return f"{self.env.goal_description} {self.env.describe_interface()}\n\n{self.env.describe_state()}"
+        same_env = "You are still in the same environment. " if self.preceding_tasks else ""
+        interface = "" if self.preceding_tasks and self.preceding_tasks[-1]==self.task else self.env.describe_interface()
+        return f"{same_env}{self.env.goal_description} {interface}\n\n{self.env.describe_state()}"
 
     def stop_condition(self):
         """Override this to set a task specific stopping condition"""
@@ -67,7 +72,6 @@ class Task():
     def agent_response_modification(self, agent_response):
         """Override to apply a function to the agent's response at every
         environment step."""
-
         return agent_response
 
     def environment_response_modification(self, environment_response):
@@ -78,6 +82,9 @@ class Task():
         """Manages agent-environment interaction. Usually no need to override."""
         self.llm = llm
         self.start_time = datetime.datetime.now(datetime.timezone.utc)
+        self.preceding_steps = self.env.step_count
+        self.preceding_reasoning_agent = self.llm.amount_of_reasoning_agent_only
+        self.preceding_reasoning_agent_env = self.llm.amount_of_reasoning_agent_env
         environment_response = self.initial_instructions()
         while not self.stop_condition():
             try:
@@ -124,14 +131,17 @@ class Task():
         """Usually no need to override, use evaluate to compute task specific stats"""
         return {
             # agent actions
-            'steps': self.env.step_count,
+            'steps': self.env.step_count - self.preceding_steps,
+            'total_steps': self.env.step_count,
             'successful_actions': self.env.successful_action_count,
             'failed_actions': self.env.step_count - self.env.successful_action_count,
             'questions_asked': self.env.total_questions_asked,
             'question_blocks': self.env.questions,
             'actions': self.env.action_counts,
-            'amount_of_reasoning_agent': self.llm.amount_of_reasoning_agent_only,
-            'amount_of_reasoning_agent_env': self.llm.amount_of_reasoning_agent_env,
+            'amount_of_reasoning_agent': self.llm.amount_of_reasoning_agent_only - self.preceding_reasoning_agent,
+            'amount_of_reasoning_agent_env': self.llm.amount_of_reasoning_agent_env - self.preceding_reasoning_agent_env,
+            'total_reasoning_start': self.preceding_reasoning_agent_env,
+            'total_reasoning_end': self.llm.amount_of_reasoning_agent_env,
             'agent_error': self.agent_error,
             'environment_error': self.environment_error,
             'agent_empty_output': self.llm.empty_outputs,
@@ -143,6 +153,7 @@ class Task():
             'tower_heights' : [block.total_height for block in self.env.clear],
             'number_of_towers': len(self.env.ontable),
             # general stats
+            'preceding_tasks': len(self.preceding_tasks),
             'start_time': self.start_time,
             'finish_time': self.finish_time,
             'run_time': self.finish_time - self.start_time,
