@@ -277,7 +277,7 @@ class Measure(Action):
 
     def describe(self):
         if self.env.noise:
-            return "You can measure the height of any block X with <measure X>. The measurement may be noisy. Multiple measurements can be taken to get a better idea of the true height. There is no limit to the number of measurements you can take"
+            return "You can measure the height of any block X with <measure X>. The measurement may be noisy. Multiple measurements can be taken to get a better idea of the true height. There is no limit to the number of measurements you can take."
         else:
             return "You can measure the height of any block X with <measure X>."
 

@@ -117,11 +117,10 @@ class MeasuringCapability(Task):
             self.max_steps = max_steps_per_run or self.env.number_of_blocks + 10
 
     def initial_instructions(self):
-        same_env = "You are still in the same environment. " if self.preceding_tasks else f"There are blocks {list_to_natural_language(self.env.block_names)}."
-        interface = "" if self.preceding_tasks and self.preceding_tasks[-1]==self.task else self.env.describe_interface()
-        #return f"{same_env}{self.env.goal_description} {()}\n\n{self.env.describe_state()}"
-
-        return f"{same_env} {self.env.goal_description} {interface}"
+        if self.preceding_tasks:
+            return super().initial_instructions()
+        else:
+            return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.goal_description} {self.env.describe_interface()}"
 
     def evaluate(self):
         estimate = self.env.actions[str(SubmitHeightAction)].estimate
