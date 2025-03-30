@@ -7,6 +7,12 @@ import time
 
 
 class InformationGatheringTask(Task):
+    """
+    This task tests the agent's information gathering abilities by asking it to build
+    a maximally high two-block tower. The agent doesn't initially know the height of
+    each tower, and has to use noisy measurements to figure these out.
+    """
+
 
     def set_up(self, max_steps_per_run = None, **kwargs):
         self.env.goal_description = "The goal is to build a maximally high tower using just two of the available blocks."
@@ -39,7 +45,11 @@ class InformationGatheringTask(Task):
 
 
 class BuildTwoBlockTowerCapability(InformationGatheringTask):
-    """This task assumes that the agent has already obtained estimates of all block heights"""
+    """
+    This task assumes that the agent has already obtained estimates of all block heights,
+    and tests whether the agent is able to build a maximally high two-block tower based
+    on those estimates.
+    """
 
     def set_up(self, **kwargs):
         super().set_up(**kwargs)
@@ -47,7 +57,7 @@ class BuildTwoBlockTowerCapability(InformationGatheringTask):
 
     def evaluate(self):
         results = super().evaluate()
-        measuring_results = list(self.preceding_results['measuring'].queue)
+        measuring_results = self.preceding_results['measuring']
         estimated_block_heights = {measuring_results[i]['block_to_measure']: measuring_results[i]['estimate'] for i in range(self.env.number_of_blocks)}
         estimated_optimal_height = sum(sorted([height for height in estimated_block_heights.values()])[-2:])
         tower = [tower for tower in self.env.get_state()['towers'] if len(tower)==2][0]

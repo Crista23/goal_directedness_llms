@@ -84,7 +84,7 @@ def output_csv(result_queue, filename, folder):
     csv_file.close()
 
 
-def run_task_sequence(task_sequence, env, llm, result_queues):
+def run_task_sequence(task_sequence, env, llm, results, result_queues):
     """Executes a sequence of tasks within a thread."""
     for i, task in enumerate(task_sequence):
         print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
@@ -92,9 +92,10 @@ def run_task_sequence(task_sequence, env, llm, result_queues):
                                     number_of_blocks=number_of_blocks,
                                     preceding_tasks = task_sequence[:i],
                                     task = task,
-                                    preceding_results = result_queues,
+                                    preceding_results = results,
                                     **vars(args))
         result = task_instance.run(llm)
+        results[task].append(result)
         result_queues[task].put(result) # put the result into the queue
 
 
@@ -126,7 +127,8 @@ if __name__ == "__main__":
 
     ## Actual run ##
     threads = []
-    result_queues = {task: queue.Queue() for task in args.tasks}
+    result_queues = {task: queue.Queue() for task in args.tasks}  # for writing to file
+    results = {task: [] for task in args.tasks}  #  for sharing with other tasks
     if args.models != ["all"]:
         print(args.models, "not equal to all")
         models = args.models
@@ -142,7 +144,7 @@ if __name__ == "__main__":
 
                 env = BlocksWorld(number_of_blocks=number_of_blocks, **vars(args))
                 llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
-                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues))
+                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, results, result_queues))
                 threads.append(thread)
                 thread.start()
 
