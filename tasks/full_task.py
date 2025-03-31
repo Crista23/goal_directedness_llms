@@ -85,8 +85,8 @@ class FullTask(Task):
         self.wikipedia_llm = open('../utils/wikipedia_llm.txt', 'r')  # for distractions
 
         ## set the random seed ##
-        if kwargs.get('seed', None):
-            self.seed = kwargs['seed']
+        if self.env.seed is not None:
+            self.seed = self.env.seed
             random.seed(self.seed)
             np.random.seed(self.seed)
 

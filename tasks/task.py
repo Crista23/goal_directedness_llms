@@ -51,8 +51,8 @@ class Task():
         Override this for task specific environment setup, etc.
         Don't forget to seed for any randomness sources you use, typically:
         ## set the random seed ##
-        if kwargs.get('seed', None):
-            self.seed = kwargs['seed']
+        if env.seed is not None:
+            self.seed = env.seed
             random.seed(self.seed)
             np.random.seed(self.seed)
         """

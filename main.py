@@ -16,9 +16,10 @@ import os
 import datetime
 import threading
 import queue
+import traceback
 
 
-tasks = {
+TASK_CLASS = {
     'information_gathering':   InformationGatheringTask,
     'measuring':               MeasuringCapability,
     'two_block_tower':         BuildTwoBlockTowerCapability,
@@ -37,14 +38,6 @@ tasks = {
     "permutation":             GeneratePermutationsCapability,
     "isword":                  CheckIfWordCapability,
 }
-
-models = [
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
-    "gpt-3.5-turbo-0125",
-    "gpt-4-turbo-2024-04-09",
-    "gpt-4o-2024-08-06",
-]
 
 
 def output_csv(result_queue, filename, folder):
@@ -87,22 +80,25 @@ def output_csv(result_queue, filename, folder):
 def run_task_sequence(task_sequence, env, llm, results, result_queues):
     """Executes a sequence of tasks within a thread."""
     for i, task in enumerate(task_sequence):
-        print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
-        task_instance = tasks[task](env, seed=seed, output_file=output_file,
-                                    number_of_blocks=number_of_blocks,
-                                    preceding_tasks = task_sequence[:i],
-                                    task = task,
-                                    preceding_results = results,
-                                    **vars(args))
-        result = task_instance.run(llm)
-        results[task].append(result)
-        result_queues[task].put(result) # put the result into the queue
+        try:
+            print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
+            task_instance = TASK_CLASS[task](env, output_file=output_file,
+                                             preceding_tasks = task_sequence[:i],
+                                             task = task,
+                                             preceding_results = results,
+                                             **vars(args))
+            result = task_instance.run(llm)
+            results[task].append(result)
+            result_queues[task].put(result) # put the result into the queue
+        except Exception as e:
+            print(f"Task {task} failed for model {llm}\n{traceback.format_exc()}")
+            break
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--models", nargs='+', type=str, default=["gemini-2.0-flash"], help=", ".join(models))
-    parser.add_argument("--tasks", nargs='+', type=str, default=["information_gathering"], help=", ".join(list(tasks.keys())))
+    parser.add_argument("--models", nargs='+', type=str, default=["gemini-2.0-flash"])
+    parser.add_argument("--tasks", nargs='+', type=str, default=["information_gathering"], help=", ".join(list(TASK_CLASS.keys())))
     parser.add_argument("--num_blocks", nargs='+', type=int, default=[3])
     parser.add_argument("--num_runs", type=int, default=1)
     parser.add_argument("--max_steps_per_run", type=int, default=None)
@@ -118,8 +114,8 @@ if __name__ == "__main__":
 
     # Task
     for task in args.tasks:
-        if task not in tasks:
-            raise ValueError(f"No such task: {args.tasks}, choose one of {list(tasks.keys())}.")
+        if task not in TASK_CLASS:
+            raise ValueError(f"No such task: {args.tasks}, choose one of {list(TASK_CLASS.keys())}.")
 
     # Create results dir
     if args.result_folder:
@@ -129,10 +125,7 @@ if __name__ == "__main__":
     threads = []
     result_queues = {task: queue.Queue() for task in args.tasks}  # for writing to file
     results = {task: [] for task in args.tasks}  #  for sharing with other tasks
-    if args.models != ["all"]:
-        print(args.models, "not equal to all")
-        models = args.models
-    for model in models:
+    for model in args.models:
         for number_of_blocks in args.num_blocks:
             for i in range(args.num_runs):
                 seed = args.starting_seed + i if args.starting_seed is not None else None
@@ -142,7 +135,7 @@ if __name__ == "__main__":
                 else:
                     output_file = None
 
-                env = BlocksWorld(number_of_blocks=number_of_blocks, **vars(args))
+                env = BlocksWorld(number_of_blocks=number_of_blocks, seed=seed, **vars(args))
                 llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
                 thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, results, result_queues))
                 threads.append(thread)
@@ -161,4 +154,5 @@ if __name__ == "__main__":
     if args.result_folder:
         for task in args.tasks:
             result_queues[task].put(None)
+        for task in args.tasks:
             writer_threads[task].join()

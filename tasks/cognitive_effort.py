@@ -163,8 +163,8 @@ class EvaluateConfigurationCapability(MeasuringCapability):
     def set_up(self, **kwargs):
         super().set_up(**kwargs)
         # set random seed
-        if 'seed' in kwargs:
-            random.seed(kwargs['seed'])
+        if self.env.seed is not None:
+            random.seed(self.env.seed)
         configuration = random.choice(all_configurations(self.env))
         self.true_height = score(self.env, configuration)
         self.env.goal_description = f"Your task is to calculate the height of the lowest tower out of {configuration[0]} and {configuration[1]}."

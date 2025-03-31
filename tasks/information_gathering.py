@@ -59,12 +59,17 @@ class BuildTwoBlockTowerCapability(InformationGatheringTask):
         results = super().evaluate()
         measuring_results = self.preceding_results['measuring']
         estimated_block_heights = {measuring_results[i]['block_to_measure']: measuring_results[i]['estimate'] for i in range(self.env.number_of_blocks)}
+        assert set(estimated_block_heights.keys()) == set(self.env.block_names), "seems like not all measuring tasks were run prior to this subtask"
         estimated_optimal_height = sum(sorted([height for height in estimated_block_heights.values()])[-2:])
-        tower = [tower for tower in self.env.get_state()['towers'] if len(tower)==2][0]
-        estimated_height = estimated_block_heights[tower[0].name] + estimated_block_heights[tower[1].name]
+        if self.env.most_blocks_in_a_tower >= 2:
+            tower = [tower for tower in self.env.get_state()['towers'] if len(tower)==2][0]
+            estimated_height = estimated_block_heights[tower[0].name] + estimated_block_heights[tower[1].name]
+        else:
+            estimated_regret = None
+            estimated_height = None
         results.update({
-            'estimated_regret': estimated_optimal_height - estimated_height,
-            'estimated_height': estimated_height
+            'local_regret': estimated_optimal_height - estimated_height,
+            'believed_height': estimated_height
         })
         return results
 
@@ -103,7 +108,7 @@ class MeasuringCapability(Task):
 
     def set_up(self, max_steps_per_run = None, randomize_block=False, **kwargs):
         self.env.set_actions([Measure, SubmitHeightAction])
-        seed = kwargs.get('seed', False) or int(time.time())
+        seed = self.env.seed or int(time.time())
         if randomize_block:
             self.block = self.env.block_names[seed % len(self.env.block_names)]
         else:
