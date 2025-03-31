@@ -44,6 +44,7 @@ class Task():
         self.preceding_tasks = kwargs.get('preceding_tasks', [])
         self.task = kwargs.get('task', None)
         self.preceding_results = kwargs.get('preceding_results', {})
+        self.result_queues = kwargs.get('result_queues', None)
         self.set_up(**kwargs)
 
     def set_up(self, **kwargs):
@@ -79,7 +80,7 @@ class Task():
         """Override to apply a function to the environment's response at every step."""
         return environment_response
 
-    def run(self, llm, result_queue=None):
+    def run(self, llm):
         """Manages agent-environment interaction. Usually no need to override."""
         self.llm = llm
         self.start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -109,14 +110,15 @@ class Task():
         self.finish_time = datetime.datetime.now(datetime.timezone.utc)
         result = self.evaluate()
         result.update(self.general_stats())
+        self.preceding_results[self.task].append(result)
         print("=================================== Results ====================================", file=self.output_file)
         for key, value in result.items():
             print(f"{key}: {value}", file=self.output_file)
         if self.output_file:
             self.output_file.flush()
-        if result_queue:
+        if self.result_queues:
             print(f"Finished {self.llm.model_name} on {self.env.number_of_blocks} blocks and seed {self.env.seed}.")
-            result_queue.put(result)
+            self.result_queues[self.task].put(result)
         else:
             return result
 

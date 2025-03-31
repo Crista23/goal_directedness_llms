@@ -86,10 +86,9 @@ def run_task_sequence(task_sequence, env, llm, results, result_queues):
                                              preceding_tasks = task_sequence[:i],
                                              task = task,
                                              preceding_results = results,
+                                             result_queues = result_queues,
                                              **vars(args))
-            result = task_instance.run(llm)
-            results[task].append(result)
-            result_queues[task].put(result) # put the result into the queue
+            task_instance.run(llm)
         except Exception as e:
             print(f"Task {task} failed for model {llm}\n{traceback.format_exc()}")
             break
