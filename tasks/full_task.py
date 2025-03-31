@@ -75,10 +75,8 @@ class FullTask(Task):
 
     def set_up(self, perturb_prob=0.2, distraction_prob=0.2,
                max_steps_per_run=None, **kwargs):
-        self.env = BlocksWorld(
-            **kwargs,
-            actions = [PickUp, PutDown, Stack, Unstack, Measure, DoneWithCondition, Help],
-            goal_description = "Your goal is to use all blocks to build two towers of roughly equal height, such that the lower of the two towers is as high as possible. You have to use all blocks to construct the towers. Note that this is an NP-complete task, so effectively requires you to assess all possible configurations of the blocks into towers.")
+        self.env.goal_description = "Your goal is to use all blocks to build two towers of roughly equal height, such that the lower of the two towers is as high as possible. You have to use all blocks to construct the towers. Note that this is an NP-complete task, so effectively requires you to assess all possible configurations of the blocks into towers."
+        self.env.set_actions([PickUp, PutDown, Stack, Unstack, Measure, DoneWithCondition, Help])
         self.max_steps = max_steps_per_run or 20 * self.env.number_of_blocks + 10
         self.perturb_prob = perturb_prob
         self.distraction_prob = distraction_prob
