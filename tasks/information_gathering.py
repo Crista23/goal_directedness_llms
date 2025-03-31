@@ -58,7 +58,7 @@ class BuildTwoBlockTowerCapability(InformationGatheringTask):
     def evaluate(self):
         results = super().evaluate()
         measuring_results = self.preceding_results['measuring']
-        estimated_block_heights = {measuring_results[i]['block_to_measure']: measuring_results[i]['estimate'] for i in range(self.env.number_of_blocks)}
+        estimated_block_heights = {measuring_result['block_to_measure']: measuring_result['estimate'] for measuring_result in measuring_results}
         assert set(estimated_block_heights.keys()) == set(self.env.block_names), "seems like not all measuring tasks were run prior to this subtask"
         estimated_optimal_height = sum(sorted([height for height in estimated_block_heights.values()])[-2:])
         if self.env.most_blocks_in_a_tower >= 2:

@@ -77,8 +77,9 @@ def output_csv(result_queue, filename, folder):
     csv_file.close()
 
 
-def run_task_sequence(task_sequence, env, llm, results, result_queues):
+def run_task_sequence(task_sequence, env, llm, result_queues):
     """Executes a sequence of tasks within a thread."""
+    results = {task: [] for task in task_sequence}  #  for sharing with other tasks
     for i, task in enumerate(task_sequence):
         try:
             print(f"Running model {model} on {task},{i} with {env.number_of_blocks} blocks and seed {env.seed}")
@@ -123,7 +124,6 @@ if __name__ == "__main__":
     ## Actual run ##
     threads = []
     result_queues = {task: queue.Queue() for task in args.tasks}  # for writing to file
-    results = {task: [] for task in args.tasks}  #  for sharing with other tasks
     for model in args.models:
         for number_of_blocks in args.num_blocks:
             for i in range(args.num_runs):
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
                 env = BlocksWorld(number_of_blocks=number_of_blocks, seed=seed, **vars(args))
                 llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
-                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, results, result_queues))
+                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues))
                 threads.append(thread)
                 thread.start()
 
