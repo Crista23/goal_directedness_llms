@@ -129,7 +129,10 @@ class GenerateConfigurationsCapability(Task):
         self.fawlty_configurations = self.env.actions[str(SubmitTowersRepeatedly)].fawlty_configurations
 
     def initial_instructions(self):
-        return f"There are blocks {list_to_natural_language(self.env.block_names)}. Your goal is to list all ways the blocks can be arranged into towers, with at least one block in each tower. The order of the towers don't matter, nor do the order of the blocks within a tower. State one new configuration for each of your replies. {self.env.describe_interface()}"
+        if self.preceding_tasks:
+            return f"You are still in the same environment. Your goal is to list all ways the blocks can be arranged into towers, with at least one block in each tower. The order of the towers don't matter, nor do the order of the blocks within a tower. State one new configuration for each of your replies. {self.env.describe_interface()}"
+        else:
+            return f"There are blocks {list_to_natural_language(self.env.block_names)}. Your goal is to list all ways the blocks can be arranged into towers, with at least one block in each tower. The order of the towers don't matter, nor do the order of the blocks within a tower. State one new configuration for each of your replies. {self.env.describe_interface()}"
 
     def environment_response_modification(self, environment_response):
         if self.correct_configurations:
@@ -171,7 +174,10 @@ class EvaluateConfigurationCapability(MeasuringCapability):
         self.max_steps = 20
 
     def initial_instructions(self):
-        return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.describe_block_heights()} {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
+        if self.preceding_tasks:
+            return f"You are still in the same environment. {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
+        else:
+            return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.describe_block_heights()} {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
 
 
 ############################################################
