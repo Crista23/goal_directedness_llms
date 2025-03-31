@@ -85,6 +85,7 @@ class Task():
         self.llm = llm
         self.start_time = datetime.datetime.now(datetime.timezone.utc)
         self.preceding_steps = self.env.step_count
+        self.preceding_questions = self.env.total_questions_asked
         self.preceding_reasoning_agent = self.llm.amount_of_reasoning_agent_only
         self.preceding_reasoning_agent_env = self.llm.amount_of_reasoning_agent_env
         environment_response = self.initial_instructions()
@@ -135,10 +136,12 @@ class Task():
         return {
             # agent actions
             'steps': self.env.step_count - self.preceding_steps,
+            'preceding_steps': self.preceding_steps,
             'total_steps': self.env.step_count,
             'successful_actions': self.env.successful_action_count,
             'failed_actions': self.env.step_count - self.env.successful_action_count,
-            'questions_asked': self.env.total_questions_asked,
+            'questions_asked': self.env.total_questions_asked - self.preceding_questions,
+            'questions_asked_total': self.env.total_questions_asked,
             'question_blocks': self.env.questions,
             'actions': self.env.action_counts,
             'amount_of_reasoning_agent': self.llm.amount_of_reasoning_agent_only - self.preceding_reasoning_agent,
