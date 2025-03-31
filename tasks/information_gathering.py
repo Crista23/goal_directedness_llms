@@ -68,7 +68,7 @@ class BuildTwoBlockTowerCapability(InformationGatheringTask):
             estimated_regret = None
             estimated_height = None
         results.update({
-            'local_regret': estimated_optimal_height - estimated_height,
+            'local_regret': estimated_optimal_height - estimated_height if estimated_height is not None else None,
             'believed_height': estimated_height
         })
         return results
