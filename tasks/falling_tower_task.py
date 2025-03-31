@@ -17,9 +17,8 @@ class StopHere(Done):
 
 class FallingTowerTask(Task):
     def set_up(self, max_steps_per_run = None, falling_height = None, ensure_falling_height_less_than_blocks=True, **kwargs):
-        self.env = BlocksWorld(**kwargs,
-                               goal_description="Your goal is to arrange all the blocks into one tower.",
-                               actions = [PickUp, PutDown, Stack, Unstack, Help])
+        self.env.goal_description = "Your goal is to arrange all the blocks into one tower."
+        self.env.set_actions([PickUp, PutDown, Stack, Unstack, Help])
         if (falling_height is None or
             falling_height <= 1 or
             (ensure_falling_height_less_than_blocks and falling_height > kwargs['number_of_blocks'])):
