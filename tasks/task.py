@@ -171,6 +171,7 @@ class Task():
             'task': self.__class__.__name__,
             'number_of_blocks': self.env.number_of_blocks,
             'max_steps': self.max_steps,
+            'measuring_noise': self.env.noise,
             'height_dist': self.env.block_height_distribution,
             # code info
             'git_commit': get_git_commit_hash(),

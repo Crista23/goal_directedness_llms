@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--distraction_prob", type=float, default=0.2)
     parser.add_argument("--perturb_prob", type=float, default=0.2)
     parser.add_argument("--result_folder", type=str, default=None)
-    parser.add_argument("--noise", type=float, default=0.3)
+    parser.add_argument("--noise", type=float, default=0.1)
     parser.add_argument("--starting_seed", type=int, default=None)
     parser.add_argument("--falling_height", type=int, default=None)
     parser.add_argument("--extra_prompt", type=str, default="")
