@@ -77,7 +77,7 @@ def output_csv(result_queue, filename, folder):
     csv_file.close()
 
 
-def run_task_sequence(task_sequence, env, llm, result_queues):
+def run_task_sequence(task_sequence, env, llm, result_queues, output_file):
     """Executes a sequence of tasks within a thread."""
     results = {task: [] for task in task_sequence}  #  for sharing with other tasks
     for i, task in enumerate(task_sequence):
@@ -124,19 +124,21 @@ if __name__ == "__main__":
     ## Actual run ##
     threads = []
     result_queues = {task: queue.Queue() for task in args.tasks}  # for writing to file
+    output_files = []
     for model in args.models:
         for number_of_blocks in args.num_blocks:
             for i in range(args.num_runs):
                 seed = args.starting_seed + i if args.starting_seed is not None else None
                 if args.result_folder:
-                    output_file = open(os.path.join('results', f"{model}_{number_of_blocks}_{i}.txt"), "w")
+                    output_file = open(os.path.join(args.result_folder, f"{model}_{number_of_blocks}_{seed}.txt"), "w")
+                    output_files.append(output_file)
                     print(f"Run {i} for model {model} on {args.tasks} with {number_of_blocks} blocks and seed {seed}", file=output_file)
                 else:
                     output_file = None
 
                 env = BlocksWorld(number_of_blocks=number_of_blocks, seed=seed, **vars(args))
                 llm = langchain_agent.LangchainAgent(model, extra_prompt=args.extra_prompt, output_file=output_file)
-                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues))
+                thread = threading.Thread(target=run_task_sequence, args=(args.tasks, env, llm, result_queues, output_file))
                 threads.append(thread)
                 thread.start()
 
@@ -155,3 +157,5 @@ if __name__ == "__main__":
             result_queues[task].put(None)
         for task in args.tasks:
             writer_threads[task].join()
+        for output_file in output_files:
+            output_file.close()
