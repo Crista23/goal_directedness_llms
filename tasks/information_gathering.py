@@ -4,6 +4,7 @@ from agents import langchain_agent
 
 import math
 import time
+import numpy as np
 
 
 class InformationGatheringTask(Task):
@@ -129,11 +130,14 @@ class MeasuringCapability(Task):
 
     def evaluate(self):
         estimate = self.env.actions[str(SubmitHeightAction)].estimate
+        true_average = np.mean(self.env.actions[str(Measure)].return_values)
         result = {
             'completed': self.env.done,
             'passed': self.env.done and math.isclose(estimate, self.true_height, abs_tol=0.01),
             'estimate': estimate,
             'true_height': self.true_height,
+            'true_average': true_average,
+            'averaging_error': true_average - estimate if (estimate is not None and true_average is not None) else None,
             'block_to_measure': self.block,
             'measuring_error': estimate - self.true_height if estimate else None,
             '|measuring_error|': abs(estimate - self.true_height) if estimate else None,

@@ -79,6 +79,7 @@ class Action():
     def __init__(self, env):
         self.env = env
         self.times_executed = 0
+        self.return_values = []
 
     def __str__(self):
         return self.__class__.__name__  # but doesn't do much for children, unfortunately
@@ -268,8 +269,10 @@ class Measure(Action):
             noisy_height = -1
             while noisy_height < 0 or noisy_height > 2*block.height:
                 noisy_height = np.random.normal(loc=block.height, scale=block.height*self.env.noise)
+            self.return_values.append(noisy_height)
             return f'A noisy reading of the height of {block} is {noisy_height:.2f}cm.'
         else:
+            self.return_values.append(block_height)
             return f"The height of block {block} is {block.height:.2f}cm."
 
     def possible_applications(self):
