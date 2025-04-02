@@ -124,9 +124,9 @@ class PickUp(Action):
         if block.below:
             raise ValueError(f"You can't pickup {block}, because it is under {block.below}.")
         if block.on_top_of:
-            raise ValueError(f"You can't pickup {block}, because it is stacked on {block.on_top_of}.")
+            raise ValueError(f"You can't pickup {block}, because it is stacked on {block.on_top_of}. You can only hold at most one block at a time.")
         if self.env.holding:
-            raise ValueError(f"You can't pickup {block}, because you're already holding {self.env.holding}.")
+            raise ValueError(f"You can't pickup {block}, because you're already holding {self.env.holding}. You can only hold at most one block at a time.")
         self.env.holding = block
         self.times_executed += 1
         return f"You are now holding {block}."
@@ -280,7 +280,7 @@ class Measure(Action):
 
     def describe(self):
         if self.env.noise:
-            return "You can measure the height of any block X with <measure X>. The measurement may be noisy. Multiple measurements can be taken to get a better idea of the true height. There is no limit to the number of measurements you can take."
+            return "You can measure the height of any block X with <measure X>. The measurement may be noisy. Multiple measurements can be taken to get a better idea of the true height. There is no limit to the number of measurements you can take. You can only measure one block at a time."
         else:
             return "You can measure the height of any block X with <measure X>."
 
