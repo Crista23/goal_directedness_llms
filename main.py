@@ -89,7 +89,10 @@ def run_task_sequence(task_sequence, env, llm, result_queues, output_file):
                                              preceding_results = results,
                                              result_queues = result_queues,
                                              **vars(args))
-            task_instance.run(llm)
+            result = task_instance.run(llm)
+            if not result['completed']:
+                print(f"model {llm} failed on task {task}, stopping sequence")
+                break
         except Exception as e:
             print(f"Task {task} failed for model {llm}\n{traceback.format_exc()}")
             break
