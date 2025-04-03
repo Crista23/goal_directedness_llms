@@ -159,7 +159,7 @@ class ExecuteTask(PlanAndExecuteTask):
 
     def initial_instructions(self):
         if self.preceding_tasks:
-            return f"Your goal is to build the configuratition that you just picked. {self.env.describe_interface()}\n\n{self.env.describe_state()}"
+            return f"Your goal is to build the configuration that you just picked. {self.env.describe_interface()}\n\n{self.env.describe_state()}"
         else:
             tower1, tower2 = self.configuration
             return super().initial_instructions() + f" The configuration that minimises height has already been computed for you: it has {tower1} in one tower, and {tower2} in the other."
