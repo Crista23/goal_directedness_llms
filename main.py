@@ -43,7 +43,7 @@ TASK_CLASS = {
 
 
 def output_csv(result_queue, filename, folder):
-    # First result we pop separately, to initialise the csv writer
+    # The first result we pop separately, to initialise the csv writer
     result = result_queue.get()
 
     # Try to open the file in read mode to check existing columns
@@ -98,6 +98,7 @@ def run_task_sequence(task_sequence, env, llm, result_queues, output_file):
         except Exception as e:
             print(f"Task {task} failed for model {llm}\n{traceback.format_exc()}")
             break
+    print(f"Finished task sequence for {llm.model_name}, {env.number_of_blocks} blocks, and seed {env.seed}")
 
 
 if __name__ == "__main__":

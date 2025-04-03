@@ -121,7 +121,7 @@ class Task():
             self.output_file.flush()
         if self.result_queues:
             self.result_queues[self.task].put(result)
-        print(f"Finished {self.llm.model_name} on {self.env.number_of_blocks} blocks and seed {self.env.seed}.")
+        print(f"Finished {self.llm.model_name} on task {self.task} and {self.env.number_of_blocks} blocks and seed {self.env.seed}.")
         return result
 
     def evaluate(self):
