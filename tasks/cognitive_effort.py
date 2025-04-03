@@ -123,7 +123,6 @@ class GenerateConfigurationsCapability(Task):
 
     def set_up(self, max_steps_per_run = None, **kwargs):
         self.env.set_actions([SubmitTowersRepeatedly, Done])
-        self.env.done = False
         self.configurations_required = (2 ** self.env.number_of_blocks - 2) / 2
         self.max_steps = max_steps_per_run or min(self.configurations_required + 30, 100)
         self.correct_configurations = self.env.actions[str(SubmitTowersRepeatedly)].correct_configurations
