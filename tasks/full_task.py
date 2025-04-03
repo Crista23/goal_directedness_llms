@@ -77,6 +77,8 @@ class FullTask(Task):
                max_steps_per_run=None, **kwargs):
         self.env.goal_description = "Your goal is to use all blocks to build two towers of roughly equal height, such that the lower of the two towers is as high as possible. You have to use all blocks to construct the towers. Note that this is an NP-complete task, so effectively requires you to assess all possible configurations of the blocks into towers."
         self.env.set_actions([PickUp, PutDown, Stack, Unstack, Measure, DoneWithCondition, Help])
+        self.env.done = False
+        self.env.set_state(towers=[[]])
         self.max_steps = max_steps_per_run or 20 * self.env.number_of_blocks + 10
         self.perturb_prob = perturb_prob
         self.distraction_prob = distraction_prob
@@ -149,6 +151,24 @@ class PlanAndExecuteTask(FullTask):
 
 class ExecuteTask(PlanAndExecuteTask):
 
+    def set_up(self, preceding_results=None, **kwargs):
+        super().set_up()
+        if preceding_results and 'pick_configuration' in preceding_results:
+            self.configuration = preceding_results['pick_configuration'][0]['picked_configuration']
+        else:
+            self.configuration = optimal_configuration(self.env)
+
     def initial_instructions(self):
-        tower1, tower2 = optimal_configuration(self.env)
-        return super().initial_instructions() + f" The configuration that minimises height has already been computed for you: it has {tower1} in one tower, and {tower2} in the other."
+        if self.preceding_tasks:
+            return f"Your goal is to build the configuratition that you just picked. {self.env.describe_interface()}\n\n{self.env.describe_state()}"
+        else:
+            tower1, tower2 = self.configuration
+            return super().initial_instructions() + f" The configuration that minimises height has already been computed for you: it has {tower1} in one tower, and {tower2} in the other."
+
+    def evaluate(self):
+        result = super().evaluate()
+        result.update({
+            'intended_configuration': self.configuration,
+            'local_regret': partition_distance(self.configuration, list(map(lambda tower: list(map(str, tower)), self.env.get_state()['towers'])))
+        })
+        return result

@@ -164,21 +164,38 @@ class GenerateConfigurationsCapability(Task):
 
 class EvaluateConfigurationCapability(MeasuringCapability):
 
-    def set_up(self, **kwargs):
+    def set_up(self, configuration=None, **kwargs):
         super().set_up(**kwargs)
         # set random seed
         if self.env.seed is not None:
             random.seed(self.env.seed)
-        configuration = random.choice(all_configurations(self.env))
+        self.configuration = configuration or random.choice(all_configurations(self.env))
+        self.block = configuration
         self.true_height = score(self.env, configuration)
-        self.env.goal_description = f"Your task is to calculate the height of the lowest tower out of {configuration[0]} and {configuration[1]}."
+        self.env.goal_description = f"What is the height of the lowest tower among {self.configuration[0]}; {self.configuration[1]}?"
         self.max_steps = 20
 
     def initial_instructions(self):
         if self.preceding_tasks:
-            return f"You are still in the same environment. {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
+            return f"{self.env.goal_description} Submit your answer with <height Xcm>. For example, <height 3.2cm>."
         else:
             return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.describe_block_heights()} {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
+
+
+class EvaluateAllConfigurations():
+
+    def __init__(self, env, **kwargs):
+        self.env = env
+        self.kwargs = kwargs
+
+    def run(self, llm):
+        configurations = self.kwargs.get('preceding_results', None)['generate_configurations'][0]['correct_configurations']
+        for configuration in configurations:
+            result = EvaluateConfigurationCapability(self.env, configuration=configuration, **self.kwargs).run(llm)
+            if not result['completed']:
+                print(f"model {llm} failed to evaluate {configuration}")
+                break
+        return result
 
 
 ############################################################
@@ -195,8 +212,17 @@ class PickConfigurationCapability(CognitiveEffortTask):
         super().set_up(**kwargs)
 
     def initial_instructions(self):
-        return super().initial_instructions() + " The possible configurations are:\n" + ",\n".join(f"{configuration} with lowest tower {score(self.env, configuration):.2f}" for configuration in all_configurations(self.env)) + "."
+        if self.preceding_tasks:
+            return f"Your goal is to pick out the configuration where the lowest tower is as high as possible. Use your previous evaluations to find it. {self.env.describe_interface()}"
+        else:
+            return super().initial_instructions() + " The possible configurations are:\n" + ",\n".join(f"{configuration} with lowest tower {score(self.env, configuration):.2f}" for configuration in all_configurations(self.env)) + "."
 
+    def evaluate(self):
+        result = super().evaluate()
+        result.update({
+            'picked_configuration': list(map(lambda tower: list(map(str, tower)), self.env.get_state()['towers'])),
+        })
+        return result
 
 
 if __name__ == "__main__":

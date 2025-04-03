@@ -107,13 +107,10 @@ class SubmitHeightAction(Action):
 
 class MeasuringCapability(Task):
 
-    def set_up(self, max_steps_per_run = None, randomize_block=False, **kwargs):
+    def set_up(self, max_steps_per_run = None, block=None, **kwargs):
         self.env.set_actions([Measure, SubmitHeightAction])
         seed = self.env.seed or int(time.time())
-        if randomize_block:
-            self.block = self.env.block_names[seed % len(self.env.block_names)]
-        else:
-            self.block = self.env.block_names[len(self.preceding_tasks) % len(self.env.block_names)]
+        self.block = block or self.env.block_names[seed % len(self.env.block_names)]
         self.true_height = self.env.block_heights[self.block]
 
         self.env.goal_description = f"Your goal is to figure out the true height of block '{self.block}'."
@@ -145,6 +142,20 @@ class MeasuringCapability(Task):
         }
         return result
 
+
+class MeasureAllBlocks():
+
+    def __init__(self, env, **kwargs):
+        self.env = env
+        self.kwargs = kwargs
+
+    def run(self, llm):
+        for block in self.env.block_names:
+            result = MeasuringCapability(self.env, block=block, **self.kwargs).run(llm)
+            if not result['completed']:
+                print(f"model {llm} failed to measure {block}, aborting")
+                break
+        return result
 
 
 

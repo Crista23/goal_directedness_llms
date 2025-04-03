@@ -45,6 +45,7 @@ class Task():
         self.task = kwargs.get('task', None)
         self.preceding_results = kwargs.get('preceding_results', {})
         self.result_queues = kwargs.get('result_queues', None)
+        self.step_count = 0
         self.set_up(**kwargs)
 
     def set_up(self, **kwargs):
@@ -67,9 +68,9 @@ class Task():
 
     def stop_condition(self):
         """Override this to set a task specific stopping condition"""
-        if self.env.step_count > self.max_steps:
+        if self.step_count > self.max_steps:
           print(f"Warning: {self.llm.model_name} exceeded max_steps {self.max_steps} on task {self.__class__.__name__}")
-        return self.env.step_count > self.max_steps or self.env.done
+        return self.step_count > self.max_steps or self.env.done
 
     def agent_response_modification(self, agent_response):
         """Override to apply a function to the agent's response at every
@@ -88,6 +89,7 @@ class Task():
         self.preceding_questions = self.env.total_questions_asked
         self.preceding_reasoning_agent = self.llm.amount_of_reasoning_agent_only
         self.preceding_reasoning_agent_env = self.llm.amount_of_reasoning_agent_env
+        self.step_count += 1
         environment_response = self.initial_instructions()
         while not self.stop_condition():
             try:
@@ -134,7 +136,7 @@ class Task():
         """Usually no need to override, use evaluate to compute task specific stats"""
         return {
             # agent actions
-            'steps': self.env.step_count - self.preceding_steps,
+            'steps': self.step_count,
             'preceding_steps': self.preceding_steps,
             'total_steps': self.env.step_count,
             'successful_actions': self.env.successful_action_count,

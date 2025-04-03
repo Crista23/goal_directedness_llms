@@ -1,8 +1,8 @@
 from agents import langchain_agent
 
 from blocksworld_environment.blocksworld_environment import BlocksWorld
-from tasks.information_gathering import InformationGatheringTask, MeasuringCapability, BuildTwoBlockTowerCapability
-from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, PickConfigurationCapability
+from tasks.information_gathering import InformationGatheringTask, MeasuringCapability, MeasureAllBlocks, BuildTwoBlockTowerCapability
+from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, EvaluateAllConfigurations, PickConfigurationCapability
 from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
 from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
@@ -22,10 +22,12 @@ import traceback
 TASK_CLASS = {
     'information_gathering':   InformationGatheringTask,
     'measuring':               MeasuringCapability,
+    'measuring_all':           MeasureAllBlocks,
     'two_block_tower':         BuildTwoBlockTowerCapability,
     "cognitive_effort":        CognitiveEffortTask,
     "generate_configurations": GenerateConfigurationsCapability,
     "evaluate_configuration":  EvaluateConfigurationCapability,
+    "evaluate_all_configurations": EvaluateAllConfigurations,
     "pick_configuration":      PickConfigurationCapability,
     "execution":               ExecuteTask,
     "plan_and_execute":        PlanAndExecuteTask,
