@@ -172,6 +172,8 @@ class EvaluateConfigurationCapability(MeasuringCapability):
         self.block = configuration
         self.true_height = score(self.env, configuration)
         self.env.goal_description = f"What is the height of the lowest tower among {self.configuration[0]}; {self.configuration[1]}?"
+        if self.preceding_tasks:
+            self.env.goal_description = self.env.goal_description[:-1] + " using your previous measurements?"
         self.max_steps = 20
 
     def initial_instructions(self):
