@@ -127,7 +127,7 @@ class MeasuringCapability(Task):
 
     def evaluate(self):
         estimate = self.env.actions[str(SubmitHeightAction)].estimate
-        true_average = np.mean(self.env.actions[str(Measure)].return_values)
+        true_average = np.mean(self.env.actions[str(Measure)].return_values) if str(Measure) in self.env.actions else None
         result = {
             'completed': self.env.done,
             'passed': self.env.done and math.isclose(estimate, self.true_height, abs_tol=0.01),
@@ -151,6 +151,7 @@ class MeasureAllBlocks():
 
     def run(self, llm):
         for block in self.env.block_names:
+            self.kwargs['task'] == 'measuring'
             result = MeasuringCapability(self.env, block=block, **self.kwargs).run(llm)
             if not result['completed']:
                 print(f"model {llm} failed to measure {block}, aborting")

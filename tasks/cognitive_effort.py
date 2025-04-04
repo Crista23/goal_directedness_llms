@@ -1,7 +1,7 @@
 from blocksworld_environment.blocksworld_environment import BlocksWorld, Action, Done, Help, list_to_natural_language
 from tasks.task import Task
 from tasks.full_task import FullTask, all_configurations, score
-from tasks.information_gathering import MeasuringCapability
+from tasks.information_gathering import MeasuringCapability, SubmitHeightAction
 
 import itertools
 import math
@@ -165,6 +165,7 @@ class EvaluateConfigurationCapability(MeasuringCapability):
 
     def set_up(self, configuration=None, **kwargs):
         super().set_up(**kwargs)
+        self.env.set_actions([SubmitHeightAction])
         # set random seed
         if self.env.seed is not None:
             random.seed(self.env.seed)
@@ -172,13 +173,11 @@ class EvaluateConfigurationCapability(MeasuringCapability):
         self.block = configuration
         self.true_height = score(self.env, configuration)
         self.env.goal_description = f"What is the height of the lowest tower among {self.configuration[0]}; {self.configuration[1]}?"
-        if self.preceding_tasks:
-            self.env.goal_description = self.env.goal_description[:-1] + " using your previous measurements?"
         self.max_steps = 20
 
     def initial_instructions(self):
         if self.preceding_tasks:
-            return f"{self.env.goal_description} Submit your answer with <height Xcm>. For example, <height 3.2cm>."
+            return f"{self.env.goal_description} Use your previously obtained height estimates for each block. Submit your answer with <height Xcm>. For example, <height 3.2cm>."
         else:
             return f"There are blocks {list_to_natural_language(self.env.block_names)}. {self.env.describe_block_heights()} {self.env.goal_description} Submit your answer with <height Xcm>, where X is the height of the tower. For example, <height 3.2cm>."
 
@@ -191,6 +190,7 @@ class EvaluateAllConfigurations():
 
     def run(self, llm):
         configurations = self.kwargs.get('preceding_results', None)['generate_configurations'][0]['correct_configurations']
+        self.kwargs['task'] == 'evaluate_configuration'
         for configuration in configurations:
             result = EvaluateConfigurationCapability(self.env, configuration=configuration, **self.kwargs).run(llm)
             if not result['completed']:
