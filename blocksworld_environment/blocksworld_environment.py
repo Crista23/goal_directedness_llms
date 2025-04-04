@@ -482,7 +482,7 @@ class BlocksWorld():
 
     def extract_action(self, agent_response):
         if "<" not in agent_response or ">" not in agent_response:
-            raise ValueError("Remember to tag your next action as <next action>.")
+            raise ValueError("Remember to tag your next action as <next action>." + self.describe_available_actions())
         elif agent_response.count('<') > 1 or agent_response.count('<') > 1:
             raise ValueError("Your reply should contain only one set of tags < >, stating the action or answer you want to give next.")
         return agent_response[agent_response.rfind("<") + 1 : agent_response.rfind(">")].strip().lower()
