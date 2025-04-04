@@ -5,22 +5,20 @@ import random
 import ast
 import itertools
 from scipy import stats
-
+import os
 
 NUM_ITERATIONS = 10
 
 FOLDERS = [  # Folders to find csv files in
-  '../results/'
+  'results'
 ]
-
-TASKS = ['FULL', 'COGNITIVE_EFFORT', 'PLAN_AND_EXECUTE', 'INFO_GATHERING']
 
 
 def load_dataframe(list_of_folders: list, filename: str):
   assert list_of_folders, 'list_of_folders is empty'
 
   # Add filename for folder path
-  list_of_files = [folder + filename for folder in list_of_folders]
+  list_of_files = [os.path.join(folder, filename) for folder in list_of_folders]
   list_of_datasets = []
 
   for filepath in list_of_files:
@@ -281,6 +279,7 @@ def monte_carlo(actual_run,
           'baseline_return': random_height,
           'optimal_return': optimal_height,
           'min_return': min_height,
+          'env_seed': actual_row['env_seed'],
           'task': actual_row['task'],
           })
 

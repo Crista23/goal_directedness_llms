@@ -121,7 +121,7 @@ if __name__ == "__main__":
     # Task
     for task in args.tasks:
         if task not in TASK_CLASS:
-            raise ValueError(f"No such task: {args.tasks}, choose one of {list(TASK_CLASS.keys())}.")
+            raise ValueError(f"No such task: {task}, choose one of {list(TASK_CLASS.keys())}.")
 
     # Create results dir
     if args.result_folder:
