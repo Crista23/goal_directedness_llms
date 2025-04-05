@@ -64,11 +64,11 @@ class DoneWithCondition(Done):
             self.env.done = True
             return "You've claimed you are done."
         elif self.env.holding:
-            raise ValueError(f"You are currently holding block {self.env.holding}, so not all blocks are stacked in two towers.")
+            raise ValueError(f"You are currently holding block {self.env.holding}, so not all blocks are stacked in two towers. {self.env.describe_available_actions()}")
         elif len(self.env.ontable) == 1:
             raise ValueError(f"You are supposed to create two towers of as equal height as possible. Currently all your blocks are in just one tower, which means the towers are maximally unequal.")
         else:
-            raise ValueError(f"You are not done. {self.env.describe_state()} So not all blocks are in just two towers.")
+            raise ValueError(f"You are not done. {self.env.describe_state()} So not all blocks are in just two towers. {self.env.describe_available_actions()}")
 
 
 class FullTask(Task):
