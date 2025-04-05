@@ -3,7 +3,7 @@ from agents import langchain_agent
 from blocksworld_environment.blocksworld_environment import BlocksWorld
 from tasks.information_gathering import InformationGatheringTask, MeasuringCapability, MeasureAllBlocks, BuildTwoBlockTowerCapability
 from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, EvaluateAllConfigurations, PickConfigurationCapability, GenerateEvaluatePick
-from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
+from tasks.full_task import FullTask, FullNoMeasure, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
 from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
 from anagram_environment.anagram import AnagramTask, GeneratePermutationsCapability, CheckIfWordCapability
@@ -33,6 +33,7 @@ TASK_CLASS = {
     "execution":               ExecuteTask,
     "plan_and_execute":        PlanAndExecuteTask,
     "full":                    FullTask,
+    "full_no_measure":         FullNoMeasure,
     "falling_tower":           FallingTowerTask,
     "build_tower_with_all_blocks": BuildTowerWithAllBlocksCapability,
     "arrange_letters":         ArrangeLettersTask,
@@ -40,6 +41,11 @@ TASK_CLASS = {
     "anagram":                 AnagramTask,
     "permutation":             GeneratePermutationsCapability,
     "isword":                  CheckIfWordCapability,
+}
+
+ACTUAL_TASKS_MAP = {
+    'measuring_all': 'measuring',
+    'evaluate_all_configurations': 'evaluate_configuration'
 }
 
 
@@ -130,7 +136,8 @@ if __name__ == "__main__":
 
     ## Actual run ##
     threads = []
-    result_queues = {}  # for writing to file
+    actual_tasks = [ACTUAL_TASKS_MAP.get(task, task) for task in args.tasks]
+    result_queues = {task: queue.Queue() for task in actual_tasks}  # for writing to file
     output_files = []
     for model in args.models:
         for number_of_blocks in args.num_blocks:
@@ -151,7 +158,7 @@ if __name__ == "__main__":
 
     if args.result_folder:
         writer_threads = {}
-        for task in args.tasks:
+        for task in actual_tasks:
             writer_threads[task] = threading.Thread(target=output_csv, args=(result_queues[task], task, args.result_folder))
             writer_threads[task].start()
 

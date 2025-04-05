@@ -137,6 +137,13 @@ class FullTask(Task):
         }
 
 
+class FullNoMeasure(FullTask):
+
+    def set_up(self, **kwargs):
+        super().set_up(**kwargs)
+        del self.env.actions[str(Measure)]
+
+
 class PlanAndExecuteTask(FullTask):
 
     def set_up(self, **kwargs):
