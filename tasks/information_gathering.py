@@ -93,7 +93,7 @@ class SubmitHeightAction(Action):
         return self.execute(float(action_str.split(' ')[1].replace("cm", "")))
 
     def execute(self, estimate):
-        self.times_executed += 1
+        super().execute()
         self.estimate = estimate
         self.env.done = True
         return f"Submitted height {self.estimate}cm."
@@ -148,14 +148,15 @@ class MeasureAllBlocks():
     def __init__(self, env, **kwargs):
         self.env = env
         self.kwargs = kwargs
+        self.kwargs['task'] = 'measuring'
 
     def run(self, llm):
         for block in self.env.block_names:
-            self.kwargs['task'] == 'measuring'
             result = MeasuringCapability(self.env, block=block, **self.kwargs).run(llm)
             if not result['completed']:
                 print(f"model {llm} failed to measure {block}, aborting")
                 break
+            self.kwargs['preceding_tasks'].append('measuring')
         return result
 
 

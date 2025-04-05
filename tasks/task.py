@@ -2,6 +2,7 @@ from blocksworld_environment.blocksworld_environment import BlocksWorld
 import datetime
 import subprocess
 import traceback
+import queue
 
 
 def get_git_commit_hash():
@@ -37,7 +38,7 @@ class Task():
         """Initial setup. Usually no need to override."""
         self.env = env
         self.env.done = False
-        self.max_steps = kwargs.get('max_steps_per_run', 20)  # often overriden by set_up()
+        self.max_steps = kwargs.get('max_steps_per_run', None) or 20   # often overriden by set_up()
         self.output_file = kwargs.get('output_file', None)
         self.agent_error = False
         self.environment_error = False
@@ -113,6 +114,8 @@ class Task():
         self.finish_time = datetime.datetime.now(datetime.timezone.utc)
         result = self.evaluate()
         result.update(self.general_stats())
+        if self.task not in self.preceding_results:
+            self.preceding_results[self.task] = []
         self.preceding_results[self.task].append(result)
         print("=================================== Results ====================================", file=self.output_file)
         for key, value in result.items():
@@ -120,6 +123,8 @@ class Task():
         if self.output_file:
             self.output_file.flush()
         if self.result_queues:
+            if self.task not in self.result_queues:
+                self.result_queues[self.task] = queue.Queue()
             self.result_queues[self.task].put(result)
         print(f"Finished {self.llm.model_name} on task {self.task} and {self.env.number_of_blocks} blocks and seed {self.env.seed}.")
         return result
@@ -130,7 +135,7 @@ class Task():
         {'completed': bool, 'regret': float} and any others that seem relevant.
         This function is executed at the end of run().
         """
-        pass
+        return {}
 
     def general_stats(self):
         """Usually no need to override, use evaluate to compute task specific stats"""

@@ -2,7 +2,7 @@ from agents import langchain_agent
 
 from blocksworld_environment.blocksworld_environment import BlocksWorld
 from tasks.information_gathering import InformationGatheringTask, MeasuringCapability, MeasureAllBlocks, BuildTwoBlockTowerCapability
-from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, EvaluateAllConfigurations, PickConfigurationCapability
+from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, EvaluateAllConfigurations, PickConfigurationCapability, GenerateEvaluatePick
 from tasks.full_task import FullTask, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
 from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
@@ -28,6 +28,7 @@ TASK_CLASS = {
     "generate_configurations": GenerateConfigurationsCapability,
     "evaluate_configuration":  EvaluateConfigurationCapability,
     "evaluate_all_configurations": EvaluateAllConfigurations,
+    "generate_evaluate_pick":  GenerateEvaluatePick,
     "pick_configuration":      PickConfigurationCapability,
     "execution":               ExecuteTask,
     "plan_and_execute":        PlanAndExecuteTask,
@@ -129,7 +130,7 @@ if __name__ == "__main__":
 
     ## Actual run ##
     threads = []
-    result_queues = {task: queue.Queue() for task in args.tasks}  # for writing to file
+    result_queues = {}  # for writing to file
     output_files = []
     for model in args.models:
         for number_of_blocks in args.num_blocks:
@@ -159,9 +160,9 @@ if __name__ == "__main__":
         thread.join()
 
     if args.result_folder:
-        for task in args.tasks:
+        for task in result_queues:
             result_queues[task].put(None)
-        for task in args.tasks:
+        for task in writer_threads:
             writer_threads[task].join()
         for output_file in output_files:
             output_file.close()

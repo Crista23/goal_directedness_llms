@@ -92,9 +92,10 @@ class Action():
         """Override. Usually call self.execute() with a parsed version of action_str. Return message to agent."""
         pass
 
-    def execute(self, args):
+    def execute(self, *args, **kwargs):
         """Override. Execute the action. Return message to agent."""
         self.times_executed += 1
+        self.env.action_sequence.append(self.__class__.__name__)
 
     def possible_applications(self):
         """Return all the possible ways the action can be applied in the current situation."""
@@ -128,7 +129,7 @@ class PickUp(Action):
         if self.env.holding:
             raise ValueError(f"You can't pickup {block}, because you're already holding {self.env.holding}. You can only hold at most one block at a time.")
         self.env.holding = block
-        self.times_executed += 1
+        super().execute()
         return f"You are now holding {block}."
 
     def possible_applications(self):
@@ -159,7 +160,7 @@ class PutDown(Action):
         if self.env.holding != block:
             raise ValueError(f"You can't put down {block} because you are not holding it.")
         self.env.holding = None
-        self.times_executed += 1
+        super().execute()
         return f"Now {block} is on the table, and you're no longer holding it."
 
     def possible_applications(self):
@@ -195,7 +196,7 @@ class Stack(Action):
         block1.on_top_of = block2
         block2.below = block1
         self.env.holding = None
-        self.times_executed += 1
+        super().execute()
         return f"You've now stacked {block1} on top of {block2}, and you're no longer holding it."
 
     def possible_applications(self):
@@ -232,7 +233,7 @@ class Unstack(Action):
         block.on_top_of.below = None
         block.on_top_of = None
         self.env.holding = block
-        self.times_executed += 1
+        super().execute()
         return f"You've now unstacked {block}, and you're holding it."
 
     def possible_applications(self):
@@ -294,7 +295,7 @@ class Help(Action):
         return self.execute()
 
     def execute(self):
-        self.times_executed += 1
+        super().execute()
         return f"{self.env.goal_description} {self.env.describe_available_actions()}\n\n{self.env.describe_state()}"
 
     def possible_applications(self):
@@ -313,7 +314,7 @@ class Done(Action):
         return self.execute()
 
     def execute(self):
-        self.times_executed += 1
+        super().execute()
         self.env.done = True
         return "You've claimed you are done."
 
@@ -351,6 +352,7 @@ class BlocksWorld():
                        for name in generate_block_names(self.number_of_blocks)}
         self.questions = {block: 0 for block in self.blocks}
         self.step_count = 0
+        self.action_sequence = []
         self.done = False
         self.holding = None
 

@@ -40,7 +40,7 @@ class SubmitTowersAction(Action):
         return self.execute(towers)
 
     def execute(self, towers):
-        self.times_executed += 1
+        super().execute()
         if len(towers) != 2:
             raise ValueError(f"Parsing error: found {len(towers)} towers, expected 2.")
         tower1, tower2 = towers
@@ -197,6 +197,33 @@ class EvaluateAllConfigurations():
                 print(f"model {llm} failed to evaluate {configuration}")
                 break
         return result
+
+
+
+class GenerateEvaluatePick(Task):
+
+    def set_up(self, **kwargs):
+        print("max steps", self.max_steps)
+        self.env.set_actions([SubmitTowersAction, SubmitHeightAction, Done]) # TODO: create SubmitTowersAndHeight
+        self.env.goal_description = "Your goals is to find a configuration of the blocks into two towers such that the lowest tower is as high as possible."
+        self.sequence = [
+            "If you are confident you have found the best configuration, say <done>. Otherwise, are there other ways to arrange the blocks into towers? Submit your answer with <towers [tower1]; [tower2]>, e.g. <towers [a]; [b, c]>.",
+            "How high is the lowest tower in this configuration? Submit your answer with <height Xcm>, e.g. <height 3.2cm>.",
+            "What is the best configuration you've found so far? Submit your answer with <towers [tower1]; [tower2]>, e.g. <towers [a]; [b, c]>."
+        ]
+        self.current_pos = 0
+
+    def initial_instructions(self):
+        return f"{self.env.goal_description} {self.env.describe_block_heights()}. What is one particular way you can arrange the blocks into towers? Submit your answer with <towers [tower1]; [tower2]>, e.g. <towers [a]; [b, c]>."
+
+    def environment_response_modification(self, environment_response):
+        if self.env.done and not (self.env.action_sequence and self.env.action_sequence[-1] == "Done"):
+            self.env.done = False
+            self.current_pos += 1
+            return self.sequence[self.current_pos % len(self.sequence)]
+        else:
+            return environment_response
+
 
 
 ############################################################
