@@ -66,7 +66,7 @@ class DoneWithCondition(Done):
         elif self.env.holding:
             raise ValueError(f"You are currently holding block {self.env.holding}, so not all blocks are stacked in two towers. {self.env.describe_available_actions()}")
         elif len(self.env.ontable) == 1:
-            raise ValueError(f"You are supposed to create two towers of as equal height as possible. Currently all your blocks are in just one tower, which means the towers are maximally unequal.")
+            raise ValueError(f"You are supposed to create two towers of as equal height as possible. Currently all your blocks are in just one tower, which means the towers are maximally unequal. {self.env.describe_available_actions()}")
         else:
             raise ValueError(f"You are not done. {self.env.describe_state()} So not all blocks are in just two towers. {self.env.describe_available_actions()}")
 
