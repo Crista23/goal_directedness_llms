@@ -151,8 +151,8 @@ class PlanAndExecuteTask(FullTask):
 class ExecuteTask(PlanAndExecuteTask):
 
     def set_up(self, preceding_results=None, **kwargs):
-        super().set_up()
-        self.max_steps = 30
+        super().set_up(
+             max_steps_per_run = 30)
         if preceding_results and 'pick_configuration' in preceding_results:
             self.configuration = preceding_results['pick_configuration'][0]['picked_configuration']
         else:
