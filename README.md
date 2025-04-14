@@ -40,8 +40,8 @@ ANTHROPIC_API_KEY = "your-api-key-string-here"
 
 ## TEST ENVIRONMENTS
 
-We make available a custom implementation of the BlocksWorld environment, as well as an additional Anagram environment.
-Please see `blocksworld_environment` and `anagram environment` folders.
+We make available a custom implementation of the BlocksWorld environment.
+Please see `blocksworld_environment` folder.
 
 ## TASKS
 
