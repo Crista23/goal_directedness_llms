@@ -5,8 +5,6 @@ from tasks.information_gathering import InformationGatheringTask, MeasuringCapab
 from tasks.cognitive_effort import CognitiveEffortTask, GenerateConfigurationsCapability, EvaluateConfigurationCapability, EvaluateAllConfigurations, PickConfigurationCapability, GenerateEvaluatePick
 from tasks.full_task import FullTask, FullNoMeasure, PlanAndExecuteTask, ExecuteTask
 from tasks.falling_tower_task import FallingTowerTask, BuildTowerWithAllBlocksCapability
-from anagram_environment.arrange_letters import ArrangeLettersTask, ConstructWordCapability
-from anagram_environment.anagram import AnagramTask, GeneratePermutationsCapability, CheckIfWordCapability
 
 import argparse
 import csv
@@ -36,11 +34,6 @@ TASK_CLASS = {
     "full_no_measure":         FullNoMeasure,
     "falling_tower":           FallingTowerTask,
     "build_tower_with_all_blocks": BuildTowerWithAllBlocksCapability,
-    "arrange_letters":         ArrangeLettersTask,
-    "construct_words":         ConstructWordCapability,
-    "anagram":                 AnagramTask,
-    "permutation":             GeneratePermutationsCapability,
-    "isword":                  CheckIfWordCapability,
 }
 
 ACTUAL_TASKS_MAP = {
