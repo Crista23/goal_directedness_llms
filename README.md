@@ -55,7 +55,13 @@ Please see `tasks` folder for their implementation.
 
 ## Running the code
 
-Please see the `scripts` folder. 
+To run the code for one task such as information gathering, use the command below:
+
+```
+python3 main.py --task information_gathering --model gemini-2.0-flash --num_blocks 3
+```
+
+To run the code for multiple tasks, please see `run_all_tasks.sh` in the `scripts` folder. 
 
 The command below will launch the evals for all tasks.
 
